@@ -6,6 +6,8 @@ set -o pipefail
 ROOT_DIR="$(readlink -f ../../)"
 GDB_INIT_PATH="$ROOT_DIR/gdbinit.py"
 COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
+LIBSLUB_PATH="$ROOT_DIR/pwndbg/modules/libslub/libslub.py"
+
 
 CWD=$(dirname -- "$0")
 IMAGE_DIR="${CWD}/images"
@@ -155,7 +157,7 @@ run_test() {
     local arch="$4"
 
     gdb_connect_qemu=(-ex "file ${IMAGE_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :${GDB_PORT}")
-    gdb_args=("${gdb_connect_qemu[@]}" --command pytests_launcher.py)
+    gdb_args=("${gdb_connect_qemu[@]}" -ex "source ${LIBSLUB_PATH}" --command pytests_launcher.py)
     if [ ${RUN_CODECOV} -ne 0 ]; then
         gdb_args=(-ex 'py import coverage;coverage.process_startup()' "${gdb_args[@]}")
     fi

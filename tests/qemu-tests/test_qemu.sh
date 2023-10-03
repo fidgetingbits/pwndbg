@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 make -C binaries
 
@@ -8,8 +8,7 @@ COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
 
 handle_sigint() {
     echo "Exiting..." >&2
-    pkill qemu-aarch64
-    pkill qemu-riscv64
+    pkill -P $QEMU_PID
     exit 1
 }
 trap handle_sigint SIGINT
@@ -30,6 +29,7 @@ test_arch() {
         -g 1234 \
         -L /usr/${arch}-linux-gnu/ \
         ./binaries/reference-binary.${arch}.out &
+    export QEMU_PID=$!
 
     run_gdb \
         -ex "set sysroot /usr/${arch}-linux-gnu/" \
@@ -38,7 +38,7 @@ test_arch() {
         -ex "target remote :1234" \
         -ex "source ./tests/user/test_${arch}.py"
     local result=$?
-    pkill qemu-${arch}
+    pkill -P $QEMU_PID
     return $result
 }
 

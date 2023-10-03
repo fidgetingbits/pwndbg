@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import functools
 import io
+import shlex
 from enum import Enum
 from typing import Dict
 from typing import List
@@ -88,12 +89,14 @@ class Command(gdb.Command):
         shell=False,
         is_alias=False,
         aliases=[],
+        explode_args=True,
         category=CommandCategory.MISC,
     ) -> None:
         self.is_alias: bool = is_alias
         self.aliases = aliases
         self.category = category
         self.shell: bool = shell
+        self.explode_args = explode_args
 
         if command_name is None:
             command_name = function.__name__
@@ -129,18 +132,23 @@ class Command(gdb.Command):
 
     def invoke(self, argument, from_tty):
         """Invoke the command with an argument string"""
+
         try:
-            args, kwargs = self.split_args(argument)
+            # Don't split them out for complex call types.
+            if not self.explode_args:
+                return self(self.parser.parse_args(gdb.string_to_argv(argument)))
+            else:
+                args, kwargs = self.split_args(argument)
         except SystemExit:
             # Raised when the usage is printed by an ArgparsedCommand
             return
         except (TypeError, gdb.error):
             pwndbg.exception.handle(self.function.__name__)
             return
-
         try:
             self.repeat = self.check_repeated(argument, from_tty)
             return self(*args, **kwargs)
+
         finally:
             self.repeat = False
 
@@ -511,7 +519,12 @@ class ArgparsedCommand:
     """Adds documentation and offloads parsing for a Command via argparse"""
 
     def __init__(
-        self, parser_or_desc, aliases=[], command_name=None, category=CommandCategory.MISC
+        self,
+        parser_or_desc,
+        aliases=[],
+        command_name=None,
+        explode_args=True,
+        category=CommandCategory.MISC,
     ) -> None:
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
@@ -523,6 +536,7 @@ class ArgparsedCommand:
         self.aliases = aliases
         self._command_name = command_name
         self.category = category
+        self.explode_args = explode_args
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
         for action in self.parser._actions:
@@ -545,6 +559,7 @@ class ArgparsedCommand:
             function,
             command_name=self._command_name,
             aliases=self.aliases,
+            explode_args=self.explode_args,
             category=self.category,
         )
 
@@ -659,6 +674,7 @@ def load_commands() -> None:
     import pwndbg.commands.segments
     import pwndbg.commands.shell
     import pwndbg.commands.slab
+    import pwndbg.commands.slub
     import pwndbg.commands.spray
     import pwndbg.commands.stack
     import pwndbg.commands.start

@@ -28,15 +28,21 @@ def lookup_types(*types):
 
 def update():
     # Workaround for Rust stuff, see https://github.com/pwndbg/pwndbg/issues/855
-    lang = gdb.execute("show language", to_string=True)
-    if "rust" not in lang:
-        restore_lang = None
-    else:
-        gdb.execute("set language c")
-        if '"auto;' in lang:
-            restore_lang = "auto"
+
+    restore_lang = None
+    try:
+        lang = gdb.execute("show language", to_string=True)
+        if "rust" not in lang:
+            restore_lang = None
         else:
-            restore_lang = "rust"
+            gdb.execute("set language c")
+            if '"auto;' in lang:
+                restore_lang = "auto"
+            else:
+                restore_lang = "rust"
+    except gdb.error:
+        # This has thrown "gdb.error: Invalid cast." before, but I'm not sure why
+        pass
 
     module.char = gdb.lookup_type("char")
     module.ulong = lookup_types("unsigned long", "uint", "u32", "uint32")

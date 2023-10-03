@@ -530,6 +530,17 @@ def virt_to_pfn(virt: int) -> int:
         raise NotImplementedError()
 
 
+@requires_debug_syms()
+def has_5lvl_paging() -> bool:
+    ops = arch_ops()
+    if ops:
+        if hasattr(ops, "uses_5lvl_paging") and callable(getattr(ops, "uses_5lvl_paging")):
+            return ops.uses_5lvl_paging()
+        return False
+    else:
+        raise NotImplementedError()
+
+
 def paging_enabled() -> bool:
     arch_name = pwndbg.gdblib.arch.name
     if arch_name == "i386":
