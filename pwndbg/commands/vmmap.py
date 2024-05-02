@@ -78,6 +78,19 @@ parser.add_argument(
 parser.add_argument(
     "-B", "--lines-before", type=int, help="Number of pages to display before result", default=1
 )
+parser.add_argument(
+    "--gaps",
+    action="store_true",
+    help="Display full gap information in the memory map.",
+)
+
+
+def gap_maps() -> None:
+    """
+    Prints the gaps in the memory map.
+    """
+    print(M.legend())
+    print_vmmap_table_header()
 
 
 @pwndbg.commands.ArgparsedCommand(
@@ -96,7 +109,7 @@ def vmmap(
     # All displayed pages, including lines after and lines before
     total_pages = pwndbg.gdblib.vmmap.get()
 
-    # Filtered memory pages, indicated by an backtrace arrow in results
+    # Filtered memory pages, indicated by a backtrace arrow in results
     filtered_pages = []
 
     # Only filter when -A and -B arguments are valid
