@@ -92,4 +92,4 @@ gdb.txt
 .venv/
 
 # Nix build stuff
-result-*
+result*

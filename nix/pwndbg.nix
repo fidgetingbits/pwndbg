@@ -68,10 +68,11 @@
 
       cp -r gdbinit.py pwndbg $out/share/pwndbg
       # Build self-contained init script for lazy loading from vanilla gdb
-      sed '2 i import sys, os
-      3 i sys.path.append("${pyEnv}/${pyEnv.sitePackages}")
-      4 i os.environ["PATH"] += ":${binPath}"
-      5 i os.environ["LC_CTYPE"] = "C.UTF-8"' -i $out/share/pwndbg/gdbinit.py
+      sed "2 i import sys, os\n\
+      sys.path.append('${pyEnv}/${pyEnv.sitePackages}')\n\
+      sys.path.append('$out/share/pwndbg/')\n\
+      os.environ['PATH'] += ':${binPath}'\n\
+      os.environ['LC_CTYPE'] = 'C.UTF-8'\n" -i $out/share/pwndbg/gdbinit.py
 
       ln -s ${pyEnv} $out/share/pwndbg/.venv
 
