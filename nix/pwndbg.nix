@@ -68,9 +68,10 @@
 
       cp -r gdbinit.py pwndbg $out/share/pwndbg
       # Build self-contained init script for lazy loading from vanilla gdb
+      # I purposely use insert() so I can re-import during development without having to restart gdb
       sed "2 i import sys, os\n\
-      sys.path.append('${pyEnv}/${pyEnv.sitePackages}')\n\
-      sys.path.append('$out/share/pwndbg/')\n\
+      sys.path.insert(0, '${pyEnv}/${pyEnv.sitePackages}')\n\
+      sys.path.insert(0, '$out/share/pwndbg/')\n\
       os.environ['PATH'] += ':${binPath}'\n\
       os.environ['LC_CTYPE'] = 'C.UTF-8'\n" -i $out/share/pwndbg/gdbinit.py
 
