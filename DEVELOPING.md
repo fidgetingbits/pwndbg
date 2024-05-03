@@ -2,6 +2,7 @@
   - [Environment setup](#environment-setup)
     - [Development with Nix](#development-with-nix)
   - [Testing](#testing)
+    - [Testing under Nix](#testing-under-nix)
   - [Linting](#linting)
   - [Minimum Supported Versions](#minimum-supported-versions)
 - [Adding a Command](#adding-a-command)
@@ -76,6 +77,18 @@ def test_hexdump(start_binary):
 `pytest` will run any function that starts with `test_` as a new test, so there is no need to register your new test anywhere. The `start_binary` argument is a function that will run the binary you give it, and it will set some common options before starting the binary. Using `start_binary` is recommended if you don't need any additional customization to GDB settings before starting the binary, but if you do it's fine to not use it.
 
 Note that in the test, we can access `pwndbg` library code like `pwndbg.gdblib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
+
+
+### Testing under Nix
+
+You will need to build a nix-compatible gdbinit.py file, which you can do with `nix build`. Then simply run the test by
+adding the `--nix` flag:
+
+```bash
+./tests.sh --nix [filter]
+```
+
+
 
 ## Linting
 
