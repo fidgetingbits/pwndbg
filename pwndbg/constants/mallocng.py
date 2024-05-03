@@ -2,6 +2,9 @@
 IB = 4  # in-band metadata size
 UNIT = 16
 
+UINT32_MASK = (1 << 32) - 1
+UINT64_MASK = (1 << 64) - 1
+
 # FIXME: Move these as they are more just musl specific
 MAGIC_VARIABLES = [
     "__malloc_context->secret",

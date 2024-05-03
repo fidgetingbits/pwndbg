@@ -260,3 +260,93 @@ def mfindslot2(addr=None) -> None:
     except gdb.error as e:
         print(RED_BOLD("ERROR:"), str(e))
         return
+
+
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    description="""Display infomation of the memory allocated from mallocng
+
+    Usage: mchunkinfo <addr>
+      * addr - A memory address that can be freed by `free()`, usually the one returned from `malloc()`.
+            In general, it should be a pointer to the `user_data` field of an *in-use* slot.
+            (Use `mfindslot` command to explore a memory address at arbitrary offset of a slot)
+    """,
+)
+
+# FIXME: It would be nice to be able to parse expressions like: (Table *)(0x124)->array
+
+parser.add_argument(
+    "addr",
+    type=int,
+    nargs="?",
+    default=None,
+    help="Slot (aka chunk) address",
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MUSLHEAP)
+@pwndbg.commands.OnlyWhenUserspace
+def mchunkinfo2(addr=None) -> None:
+    """Find the slot index of the given address in the active bins
+
+    Usage: mchunkinfo <address>
+    """
+
+    if not mheap.check_mallocng():
+        return
+
+    if addr is None:
+        print(message.error("Please provide a slot (aka chunk) address"))
+        return
+
+    gdbval = gdb.Value(addr)
+    p = gdbval.cast(gdb.lookup_type("uint8_t").pointer())
+
+    # Parse in-band meta
+    try:
+        ib = mheap.parse_ib_meta(p)
+    except gdb.error as e:
+        print(RED_BOLD("ERROR:"), str(e))
+        return
+
+    # Display in-band meta information
+    mheap.display_ib_meta(p, ib)
+
+    # Get group struct object
+    if not ib["overflow_in_band"]:
+        offset = ib["offset16"]
+    else:
+        offset = ib["offset32"]
+    addr = p - (offset + 1) * mallocng.UNIT
+    # HACK: I had to use a custom group type because gdb can't
+    # differentiate duplicate symbols :/
+    group = pwndbg.gdblib.typeinfo.get_pointer_value("struct mgroup", addr)
+
+    # Display group and (out-band) meta information
+    try:
+        mheap.display_group(group)
+        mheap.display_meta2(ib, group)
+    except gdb.error as e:
+        print(RED_BOLD("ERROR:"), str(e))
+        return
+
+    # Check if we have vaild stride / sizeclass
+    stride = mheap.get_stride(group["meta"])
+    if stride:
+        # Display the result of nontrivial_free()
+        mheap.display_nontrivial_free(ib, group)
+
+        # Compute the beginning and the ending address of slot
+        slot_start = group["storage"][stride * ib["index"]].address
+        slot_end = slot_start + stride - mallocng.IB
+
+        # Display slot information
+        try:
+            mheap.display_slot2(p, ib, slot_start, slot_end)
+        except gdb.error as e:
+            print(RED_BOLD("ERROR:"), str(e))
+            return
+    else:
+        print(
+            RED_BOLD("\nCan't get slot and nontrivial_free() information due to invaild sizeclass")
+        )
