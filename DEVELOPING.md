@@ -1,28 +1,44 @@
 - [Development Basics](#development-basics)
-  * [Environment setup](#environment-setup)
-  * [Testing](#testing)
-  * [Linting](#linting)
-  * [Minimum Supported Versions](#minimum-supported-versions)
+  - [Environment setup](#environment-setup)
+    - [Development with Nix](#development-with-nix)
+  - [Testing](#testing)
+  - [Linting](#linting)
+  - [Minimum Supported Versions](#minimum-supported-versions)
 - [Adding a Command](#adding-a-command)
 - [Adding a Configuration Option](#adding-a-configuration-option)
-  * [Configuration Docstrings](#configuration-docstrings)
-  * [Triggers](#triggers)
+  - [Configuration Docstrings](#configuration-docstrings)
+  - [Triggers](#triggers)
 - [Random developer notes](#random-developer-notes)
+- [Annotations](#annotations)
+  - [Enhancing](#enhancing)
+  - [When to use emulation / reasoning about process state](#when-to-use-emulation--reasoning-about-process-state)
+  - [What if the emulator fails?](#what-if-the-emulator-fails)
+  - [Caching annotations](#caching-annotations)
+  - [Other random annotation details](#other-random-annotation-details)
 
 # Development Basics
+
 ## Environment setup
 
 After installing `pwndbg` by running `setup.sh`, you additionally need to run `./setup-dev.sh` to install the necessary development dependencies.
 
-If you would like to use Docker, you can create a Docker image with everything already installed for you. To do this, run the following command:
+If you would like to use Docker, you can create a Docker image with everything already installed for you. To do this,
+run the following command:
+
 ```bash
 docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
 ```
 
 If you'd like to use `docker compose`, you can run
+
 ```bash
 docker compose run -i main
 ```
+
+### Development with Nix
+
+There is a development shell defined in the flake that should install all of the development requiremnets. You can run
+`nix develop` or automatically enter the environment using `direnv`.
 
 ## Testing
 
@@ -34,7 +50,9 @@ To run the tests, run [`./tests.sh`](./tests.sh). You can filter the tests to ru
 
 Our tests are written using [`pytest`](https://docs.pytest.org/en/latest/). It uses some magic so that Python's `assert` can be used for asserting things in tests and it injects dependencies which are called fixtures, into test functions. These fixtures are defined in [`tests/conftest.py`](tests/conftest.py).
 
-We can take a look at [`tests/gdb-tests/tests/test_hexdump.py`](tests/gdb-tests/tests/test_hexdump.py) for an example of a simple test. Looking at a simplified version of the top-level code, we have this:
+We can take a look at [`tests/gdb-tests/tests/test_hexdump.py`](tests/gdb-tests/tests/test_hexdump.py) for an example of
+a simple test. Looking at a simplified version of the top-level code, we have this:
+
 ```python
 import gdb
 import tests
@@ -45,6 +63,7 @@ BINARY = tests.binaries.get("reference-binary.out")
 Since these tests run inside GDB, we can import the `gdb` Python library. We also import the `tests` module, which makes it easy to get the path to the test binaries located in [`tests/gdb-tests/tests/binaries`](tests/gdb-tests/tests/binaries). You should be able to reuse the binaries in this folder for most tests, but if not feel free to add a new one.
 
 Here's a small snippet of the actual test:
+
 ```python
 def test_hexdump(start_binary):
     start_binary(BINARY)
@@ -64,9 +83,11 @@ The `lint.sh` script runs `isort`, `black`, `ruff`, `shfmt`, and `vermin`. `isor
 
 When submitting a PR, the CI job defined in `.github/workflows/lint.yml` will verify that running `./lint.sh` succeeds, otherwise the job will fail and we won't be able to merge your PR.
 
-You can optionally set the contents of `.git/hooks/pre-push` to the following if you would like `lint.sh` to automatically be run before every push:
+You can optionally set the contents of `.git/hooks/pre-push` to the following if you would like `lint.sh` to
+automatically be run before every push:
+
 ```bash
-#!/bin/sh
+#!/usr/bin/env bash
 
 ./lint.sh || exit 1
 ```
@@ -114,12 +135,12 @@ pwndbg.gdblib.config.add_param("config-name", False, "example configuration opti
 
 TODO: There are many places GDB shows docstrings, and they show up slightly differently in each place, we should give examples of this
 
-* When using `pwndbg.gdblib.config.add_param` to add a new config, there are a few things to keep in mind:
-  * For the `set_show_doc` parameter, it is best to use a noun phrase like "the value of something" to ensure that the output is grammatically correct.
-  * For the `help_docstring` parameter, you can use the output of `help set follow-fork-mode` as a guide for formatting the documentation string if the config is an enum type.
-  * For the `param_class` parameter
-    * See the [documentation](https://sourceware.org/gdb/onlinedocs/gdb/Parameters-In-Python.html) for more information.
-    * If you use `gdb.PARAM_ENUM` as `param_class`, you must pass a list of strings to the `enum_sequence` parameter.
+- When using `pwndbg.gdblib.config.add_param` to add a new config, there are a few things to keep in mind:
+  - For the `set_show_doc` parameter, it is best to use a noun phrase like "the value of something" to ensure that the output is grammatically correct.
+  - For the `help_docstring` parameter, you can use the output of `help set follow-fork-mode` as a guide for formatting the documentation string if the config is an enum type.
+  - For the `param_class` parameter
+    - See the [documentation](https://sourceware.org/gdb/onlinedocs/gdb/Parameters-In-Python.html) for more information.
+    - If you use `gdb.PARAM_ENUM` as `param_class`, you must pass a list of strings to the `enum_sequence` parameter.
 
 ## Triggers
 
@@ -129,50 +150,47 @@ TODO: If we want to do something when user changes config/theme - we can do it d
 
 Feel free to update the list below!
 
-* If you want to play with pwndbg functions under GDB, you can always use GDB's `pi` which launches python interpreter or just `py <some python line>`.
+- If you want to play with pwndbg functions under GDB, you can always use GDB's `pi` which launches python interpreter or just `py <some python line>`.
 
-* If there is possibility, don't use `gdb.execute` as this requires us to parse the string and so on; there are some cases in which there is no other choice. Most of the time we try to wrap GDB's API to our own/easier API.
+- If there is possibility, don't use `gdb.execute` as this requires us to parse the string and so on; there are some cases in which there is no other choice. Most of the time we try to wrap GDB's API to our own/easier API.
 
-* We have our own `pwndbg.config.Parameter` (which extends `gdb.Parameter`) - all of our parameters can be seen using `config` or `theme` commands. 
+- We have our own `pwndbg.config.Parameter` (which extends `gdb.Parameter`) - all of our parameters can be seen using `config` or `theme` commands.
 
-* The dashboard/display/context we are displaying is done by `pwndbg/commands/context.py` which is invoked through GDB's prompt hook (which we defined in `pwndbg/prompt.py` as `prompt_hook_on_stop`).
+- The dashboard/display/context we are displaying is done by `pwndbg/commands/context.py` which is invoked through GDB's prompt hook (which we defined in `pwndbg/prompt.py` as `prompt_hook_on_stop`).
 
-* We change a bit GDB settings - this can be seen in `pwndbg/__init__.py` - there are also imports for all pwndbg submodules
+- We change a bit GDB settings - this can be seen in `pwndbg/__init__.py` - there are also imports for all pwndbg submodules
 
-* We have a wrapper for GDB's events in `pwndbg/events.py` - thx to that we can e.g. invoke something based upon some event
+- We have a wrapper for GDB's events in `pwndbg/events.py` - thx to that we can e.g. invoke something based upon some event
 
-* We have a caching mechanism (["memoization"](https://en.wikipedia.org/wiki/Memoization)) which we use through Python's decorators - those are defined in `pwndbg/lib/cache.py` - just check its usages
+- We have a caching mechanism (["memoization"](https://en.wikipedia.org/wiki/Memoization)) which we use through Python's decorators - those are defined in `pwndbg/lib/cache.py` - just check its usages
 
-* To block a function before the first prompt was displayed use the `pwndbg.decorators.only_after_first_prompt` decorator.
+- To block a function before the first prompt was displayed use the `pwndbg.decorators.only_after_first_prompt` decorator.
 
-* Memory accesses should be done through `pwndbg/memory.py` functions
+- Memory accesses should be done through `pwndbg/memory.py` functions
 
-* Process properties can be retrieved thx to `pwndbg/gdblib/proc.py` - e.g. using `pwndbg.gdblib.proc.pid` will give us current process pid
+- Process properties can be retrieved thx to `pwndbg/gdblib/proc.py` - e.g. using `pwndbg.gdblib.proc.pid` will give us current process pid
 
-* We have a wrapper for handling exceptions that are thrown by commands - defined in `pwndbg/exception.py` - current approach seems to work fine - by using `set exception-verbose on` - we get a stacktrace. If we want to debug stuff we can always do `set exception-debugger on`.
+- We have a wrapper for handling exceptions that are thrown by commands - defined in `pwndbg/exception.py` - current approach seems to work fine - by using `set exception-verbose on` - we get a stacktrace. If we want to debug stuff we can always do `set exception-debugger on`.
 
-* Some of pwndbg's functionality - e.g. memory fetching - require us to have an instance of proper `gdb.Type` - the problem with that is that there is no way to define our own types - we have to ask gdb if it detected particular type in this particular binary (that sucks). We do it in `pwndbg/typeinfo.py` and it works most of the time. The known bug with that is that it might not work properly for Golang binaries compiled with debugging symbols.
+- Some of pwndbg's functionality - e.g. memory fetching - require us to have an instance of proper `gdb.Type` - the problem with that is that there is no way to define our own types - we have to ask gdb if it detected particular type in this particular binary (that sucks). We do it in `pwndbg/typeinfo.py` and it works most of the time. The known bug with that is that it might not work properly for Golang binaries compiled with debugging symbols.
 
-* If you want to use `gdb.parse_and_eval("a_function_name()")` or something similar that call a function, please remember this might cause another thread to continue execution without `set scheduler-locking on`. If you didn't expect that, you should use `parse_and_eval_with_scheduler_lock` from `pwndbg.gdblib.scheduler` instead.
-
-
-
+- If you want to use `gdb.parse_and_eval("a_function_name()")` or something similar that call a function, please remember this might cause another thread to continue execution without `set scheduler-locking on`. If you didn't expect that, you should use `parse_and_eval_with_scheduler_lock` from `pwndbg.gdblib.scheduler` instead.
 
 
 # Annotations
-Alongside the disassembled instructions in the dashboard, Pwndbg also has the ability to display annotations - text that contains relevent information regarding the execution of the instruction. For example, on the x86 `MOV` instruction, we can display the concrete value that gets placed into the destination register. Likewise, we can indicate the results of mathematical operations and memory accesses. The annotation in question is always dependent on the exact instruction being annotated - we handle it in a case-by-case basis. 
+Alongside the disassembled instructions in the dashboard, Pwndbg also has the ability to display annotations - text that contains relevent information regarding the execution of the instruction. For example, on the x86 `MOV` instruction, we can display the concrete value that gets placed into the destination register. Likewise, we can indicate the results of mathematical operations and memory accesses. The annotation in question is always dependent on the exact instruction being annotated - we handle it in a case-by-case basis.
 
 The main hurdle in providing annotations is determining what each instruction does, getting the relevent CPU registers and memory that are accessed, and then resolving concrete values of the operands. We call the process of determining this information "enhancement", as we enhance the information provided natively by GDB.
 
 The Capstone Engine disassembly framework is used to statically determine information about instructions and their operands. Take the x86 instruction `sub rax, rdx`. Given the raw bytes of the machine instructions, Capstone creates an object that provides an API that, among many things, exposes the names of the operands and the fact that they are both 8-byte wide registers. It provides all the information necessary to describe each operand. It also tells the general 'group' that a instruction belongs to, like if its a JUMP-like instruction, a RET, or a CALL. These groups are architecture agnostic.
 
-However, the Capstone Engine doesn't fill in concrete values that those registers take on. It has no way of knowing the value in `rdx`, nor can it actually read from memory. 
+However, the Capstone Engine doesn't fill in concrete values that those registers take on. It has no way of knowing the value in `rdx`, nor can it actually read from memory.
 
 To determine the actual values that the operands take on, and to determine the results of executing an instruction, we use the Unicorn Engine, a CPU emulator framework. The emulator has its own internal CPU register set and memory pages that mirror that of the host process, and it can execute instructions to mutate its internal state. Note that the Unicorn Engine cannot execute syscalls - it doesn't have knowledge of a kernel.
 
 We have the ability to single-step the emulator - tell it to execute the instruction at the program counter inside the emulator. After doing so, we can inspect the state of the emulator - read from its registers and memory. The Unicorn Engine itself doesn't expose information regarding what each instruction is doing - what is the instruction (is it an `add`, `mov`, `push`?) and what registers/memory locations is it reading to and writing from? - which is why we use the Capstone engine to statically determine this information.
 
-Using what we know about the instruction based on the Capstone engine - such as that it was a `sub` instruction and `rax` was written to - we query the emulator after stepping in to determine the results of the instruction. 
+Using what we know about the instruction based on the Capstone engine - such as that it was a `sub` instruction and `rax` was written to - we query the emulator after stepping in to determine the results of the instruction.
 
 We also read the program counter from the emulator to determine jumps and so we can display the instructions that will actually be executed, as opposed to displaying the instructions that follow consecutively in memory.
 
@@ -186,7 +204,7 @@ When the process stops, we instantiate the emulator from scratch. We copy all th
 
 The enhancement is broken into a couple stops:
 
-1. First, we resolve the values of all the operands of the instruction before stepping the emulator. This means we read values from registers and dereference memory depending on the operand type. This gives us the values of operands before the instruction executes. 
+1. First, we resolve the values of all the operands of the instruction before stepping the emulator. This means we read values from registers and dereference memory depending on the operand type. This gives us the values of operands before the instruction executes.
 2. Then, we step the emulator, executing a single instruction.
 3. We resolve the values of all operands again, giving us the `after_value` of each operand.
 4. Then, we enhance the "condition" field of PwndbgInstructions, where we determine if the instruction is conditional (conditional branch or conditional mov are common) and if the action is taken.
@@ -219,9 +237,11 @@ The reason we could do the second option, in this case, is because we could reas
 However, this will not be the case while enhancing instruction #3 while we are paused at instruction #2. This instruction is in the future, and without emulation, we cannot safely reason about the operands in question. It is reading from `rsi`, which might be mutated from the current value that `rsi` has in the stopped process (and in this case, we happen to know that it will be mutated). We must use emulation to determine the `before_value` of `rsi` in this case, and can't just read from the host processes register set. This principle applies in general - future instructions must be emulated to be fully annotated. When emulation is disable, the annotations are not as detailed since we can't fully reason about process state for future instructions.
 
 ## What if the emulator fails?
+
 It is possible for the emulator to fail to execute an instruction - either due to a restrictions in the engine itself, or the instruction inside segfaults and cannot continue. If the Unicorn Engine fails, there is no real way we can recover. When this happens, we simply stop emulating for the current step, and we try again the next time the process stops when we instantiate the emulator from scratch again.
 
 ## Caching annotations
+
 When we are stepping through the emulator, we want to remember the annotations of the past couple instructions. We don't want to `nexti`, and suddenly have the annotation of the previously executed instruction deleted. At the same time, we also never want stale annotations that might result from coming back to point in the program to which we have stepped before, such as the middle of a loop via a breakpoint.
 
 New annotations are only created when the process stops, and we create annotations for next handful of instructions to be executed. If we `continue` in GDB and stop at a breakpoint, we don't want annotations to appear behind the PC that are from a previous time we were near the location in question. To avoid stale annotations while still remembering them when stepping, we have a simple caching method:
@@ -230,18 +250,18 @@ While we are doing our enhancement, we create a list containing the addresses of
 
 For example, say we have the following instructions with the first number being the memory address:
 
-```
+```gdb
    0x555555556259 <main+553>    lea    rax, [rsp + 0x90]
    0x555555556261 <main+561>    mov    edi, 1                          EDI => 1
    0x555555556266 <main+566>    mov    rsi, rax
    0x555555556269 <main+569>    mov    qword ptr [rsp + 0x78], rax
    0x55555555626e <main+574>    call   qword ptr [rip + 0x6d6c]    <fstat64>
- 
+
  ► 0x555555556274 <main+580>    mov    edx, 5                  EDX => 5
    0x555555556279 <main+585>    lea    rsi, [rip + 0x3f30]     RSI => 0x55555555a1b0 ◂— 'standard output'
    0x555555556280 <main+592>    test   eax, eax
    0x555555556282 <main+594>    js     main+3784                   <main+3784>
- 
+
    0x555555556288 <main+600>    mov    rsi, qword ptr [rsp + 0xc8]
    0x555555556290 <main+608>    mov    edi, dword ptr [rsp + 0xa8]
 ```
