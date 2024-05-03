@@ -71,8 +71,8 @@ in {
       zig
       pyEnv
     ];
-    # shellHook = ''
-    #   #source "${pyEnv}/bin/activate"
-    # '';
+    shellHook = ''
+      export PWNDBG_VENV_PATH="PWNDBG_PLEASE_SKIP_VENV"
+    '';
   };
 }
