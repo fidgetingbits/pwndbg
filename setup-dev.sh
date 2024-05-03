@@ -1,4 +1,5 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
+set -e
 
 echo "# --------------------------------------"
 echo "# Install testing tools."
@@ -7,8 +8,8 @@ echo "# --------------------------------------"
 
 hook_script_path=".git/hooks/pre-push"
 hook_script=$(
-    cat << 'EOF'
-#!/bin/bash
+    cat <<'EOF'
+#!/usr/bin/env bash
 
 diff_command="git diff --no-ext-diff --ignore-submodules"
 
@@ -32,7 +33,7 @@ if [ -t 1 ] && [ ! -f $hook_script_path ]; then
     echo "Install a git hook to automatically lint files before pushing? (y/N)"
     read yn
     if [[ "$yn" == [Yy]* ]]; then
-        echo "$hook_script" > "$hook_script_path"
+        echo "$hook_script" >"$hook_script_path"
         # make the hook executable
         chmod ug+x "$hook_script_path"
         echo "pre-push hook installed to $hook_script_path and made executable"
@@ -42,14 +43,14 @@ fi
 # If we are a root in a container and `sudo` doesn't exist
 # lets overwrite it with a function that just executes things passed to sudo
 # (yeah it won't work for sudo executed with flags)
-if ! hash sudo 2> /dev/null && whoami | grep root; then
+if ! hash sudo 2>/dev/null && whoami | grep root; then
     sudo() {
         ${*}
     }
 fi
 
 linux() {
-    uname | grep -i Linux &> /dev/null
+    uname | grep -i Linux &>/dev/null
 }
 
 set_zigpath() {
@@ -78,7 +79,7 @@ download_zig_binary() {
 
     tar -C /tmp -xJf /tmp/zig.tar.xz
 
-    mv /tmp/zig-linux-x86_64-* ${ZIGPATH} &> /dev/null || true
+    mv /tmp/zig-linux-x86_64-* ${ZIGPATH} &>/dev/null || true
     echo "Zig installed to ${ZIGPATH}"
 }
 
@@ -106,7 +107,7 @@ install_apt() {
         sudo apt install shfmt
     fi
 
-    command -v go &> /dev/null || sudo apt-get install -y golang
+    command -v go &>/dev/null || sudo apt-get install -y golang
 
     download_zig_binary
 }
@@ -116,21 +117,21 @@ install_pacman() {
 
     # add debug repo for glibc-debug if it doesn't already exist
     if ! grep -q "\[core-debug\]" /etc/pacman.conf; then
-        cat << EOF | sudo tee -a /etc/pacman.conf
+        cat <<EOF | sudo tee -a /etc/pacman.conf
         [core-debug]
         Include = /etc/pacman.d/mirrorlist
 EOF
     fi
 
     if ! grep -q "\[extra-debug\]" /etc/pacman.conf; then
-        cat << EOF | sudo tee -a /etc/pacman.conf
+        cat <<EOF | sudo tee -a /etc/pacman.conf
         [extra-debug]
         Include = /etc/pacman.d/mirrorlist
 EOF
     fi
 
     if ! grep -q "\[multilib-debug\]" /etc/pacman.conf; then
-        cat << EOF | sudo tee -a /etc/pacman.conf
+        cat <<EOF | sudo tee -a /etc/pacman.conf
         [multilib-debug]
         Include = /etc/pacman.d/mirrorlist
 EOF
@@ -151,7 +152,7 @@ EOF
         sudo pacman -S --needed --noconfirm gnu-netcat
     fi
 
-    command -v go &> /dev/null || sudo pacman -S --noconfirm go
+    command -v go &>/dev/null || sudo pacman -S --noconfirm go
 
     download_zig_binary
 }
@@ -169,7 +170,7 @@ install_dnf() {
         qemu-system-arm \
         qemu-user
 
-    command -v go &> /dev/null || sudo dnf install -y go
+    command -v go &>/dev/null || sudo dnf install -y go
 
     if [[ "$1" != "" ]]; then
         sudo dnf install shfmt
@@ -185,34 +186,34 @@ if linux; then
     )
 
     case $distro in
-        "ubuntu")
-            ubuntu_version=$(
-                . /etc/os-release
-                echo ${VERSION_ID}
-            )
-            install_apt $ubuntu_version
-            ;;
-        "arch")
+    "ubuntu")
+        ubuntu_version=$(
+            . /etc/os-release
+            echo ${VERSION_ID}
+        )
+        install_apt $ubuntu_version
+        ;;
+    "arch")
+        install_pacman
+        ;;
+    "fedora")
+        fedora_version=$(
+            . /etc/os-release
+            echo ${VERSION_ID} version
+        )
+        install_dnf $fedora_verion
+        ;;
+    *) # we can add more install command for each distros.
+        echo "\"$distro\" is not supported distro. Will search for 'apt' or 'pacman' package managers."
+        if hash apt; then
+            install_apt
+        elif hash pacman; then
             install_pacman
-            ;;
-        "fedora")
-            fedora_version=$(
-                . /etc/os-release
-                echo ${VERSION_ID} version
-            )
-            install_dnf $fedora_verion
-            ;;
-        *) # we can add more install command for each distros.
-            echo "\"$distro\" is not supported distro. Will search for 'apt' or 'pacman' package managers."
-            if hash apt; then
-                install_apt
-            elif hash pacman; then
-                install_pacman
-            else
-                echo "\"$distro\" is not supported and your distro don't have apt or pacman that we support currently."
-                exit
-            fi
-            ;;
+        else
+            echo "\"$distro\" is not supported and your distro don't have apt or pacman that we support currently."
+            exit
+        fi
+        ;;
     esac
 
     if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
@@ -221,7 +222,7 @@ if linux; then
     echo "Using virtualenv from path: ${PWNDBG_VENV_PATH}"
 
     # Install poetry if not already installed
-    if ! hash poetry 2> /dev/null; then
+    if ! hash poetry 2>/dev/null; then
         curl -sSL https://install.python-poetry.org | python3 -
     fi
 
