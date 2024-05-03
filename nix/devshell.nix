@@ -73,6 +73,7 @@ in {
     ];
     shellHook = ''
       export PWNDBG_VENV_PATH="PWNDBG_PLEASE_SKIP_VENV"
+      export ZIGPATH="${pkgs.lib.getBin pkgs.zig}/bin/"
     '';
   };
 }
