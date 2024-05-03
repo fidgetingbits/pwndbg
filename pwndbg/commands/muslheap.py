@@ -1,18 +1,15 @@
 from __future__ import annotations
 
 import argparse
-import ctypes
-from string import printable
 
 import gdb
 
-
 import pwndbg.commands
-from pwndbg.commands import CommandCategory
 from pwndbg.color import message
-from pwndbg.color.memory import c as M
+from pwndbg.commands import CommandCategory
 from pwndbg.constants import mallocng
-from pwndbg.heap.mallocng import MuslMallocngMemoryAllocator, Printer
+from pwndbg.heap.mallocng import MuslMallocngMemoryAllocator
+from pwndbg.heap.mallocng import Printer
 
 mheap = MuslMallocngMemoryAllocator()
 

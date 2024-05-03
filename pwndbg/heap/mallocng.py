@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+
 import gdb
 
 import pwndbg.gdblib.symbol
 from pwndbg.color import message
-from pwndbg.color.memory import c as M
-from pwndbg.heap import heap_chain_limit
 from pwndbg.constants import mallocng
-
 
 # http://git.musl-libc.org/cgit/musl/tree/src/malloc/mallocng/malloc.c?h=v1.2.2#n40
 # `ctx` (or `__malloc_context`) contains mallocng internal status (such as `active` and `free_meta_head`)

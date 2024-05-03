@@ -1,4 +1,6 @@
 # http://git.musl-libc.org/cgit/musl/tree/src/malloc/mallocng/meta.h?h=v1.2.2#n14
+from __future__ import annotations
+
 IB = 4  # in-band metadata size
 UNIT = 16
 
