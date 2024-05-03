@@ -68,7 +68,8 @@ in {
       parallel
       qemu
       netcat-openbsd
-      zig
+      zig_0_10 # matches setup-dev.sh
+      go
       pyEnv
     ];
     shellHook = ''
