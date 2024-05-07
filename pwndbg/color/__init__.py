@@ -119,6 +119,70 @@ def bold(x: str) -> str:
     return colorize(x, BOLD)
 
 
+def bold_black(x: str) -> str:
+    return bold(black(x))
+
+
+def bold_red(x: str) -> str:
+    return bold(red(x))
+
+
+def bold_green(x: str) -> str:
+    return bold(green(x))
+
+
+def bold_yellow(x: str) -> str:
+    return bold(yellow(x))
+
+
+def bold_blue(x: str) -> str:
+    return bold(blue(x))
+
+
+def bold_purple(x: str) -> str:
+    return bold(purple(x))
+
+
+def bold_cyan(x: str) -> str:
+    return bold(cyan(x))
+
+
+def bold_gray(x: str) -> str:
+    return bold(gray(x))
+
+
+def bold_white(x: str) -> str:
+    return bold(white(x))
+
+
+def bold_light_red(x: str) -> str:
+    return bold(light_red(x))
+
+
+def bold_light_green(x: str) -> str:
+    return bold(light_green(x))
+
+
+def bold_light_yellow(x: str) -> str:
+    return bold(light_yellow(x))
+
+
+def bold_light_blue(x: str) -> str:
+    return bold(light_blue(x))
+
+
+def bold_light_purple(x: str) -> str:
+    return bold(light_purple(x))
+
+
+def bold_light_cyan(x: str) -> str:
+    return bold(light_cyan(x))
+
+
+def bold_light_gray(x: str) -> str:
+    return bold(light_gray(x))
+
+
 def underline(x: str) -> str:
     return colorize(x, UNDERLINE)
 
