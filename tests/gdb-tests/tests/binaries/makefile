@@ -28,13 +28,17 @@ endif
 ifeq ($(DEBUG), 1)
 CFLAGS		  +=	  -DDEBUG=1 -ggdb -O0 -gdwarf-4
 else
-CFLAGS		  +=	  -O1
+CFLAGS		  +=	  -
 endif
 
 PWD=$(shell pwd)
 # Apparently we don't have this version? :(
 #GLIBC=/glibc_versions/2.29/tcache_x64
 GLIBC_2_33=$(PWD)/glibcs/2.33
+
+# musl
+MUSL_1_2_4=$(PWD)/musls/1.2.4
+MUSL_1_2_4_LDFLAGS=-dynamic-linker ${MUSL_1_2_4}/lib/ld-musl-x86_64.so.1
 
 .PHONY : all clean
 
@@ -96,6 +100,7 @@ heap_malloc_chunk.out: heap_malloc_chunk.c
 multiple_threads.out: multiple_threads.c
 	@echo "[+] Building multiple_threads.out"
 	${CC} -g -O0 -o multiple_threads.out multiple_threads.c -pthread -lpthread
+
 tls.x86-64.out: tls.x86-64.c
 	@echo "[+] Building tls.x86-64.c"
 	${ZIGCC} \
@@ -167,3 +172,22 @@ reference_bin_nopie.i386.out: reference-binary.c
 
 symbol_1600_and_752.out: symbol_1600_and_752.cpp
 	${CXX} -O0 -ggdb -Wno-pmf-conversions symbol_1600_and_752.cpp -o symbol_1600_and_752.out
+
+# FIXME: move below to their own folder that automatically builds them all for each version of the library we support
+
+# musl tests
+# Building dynamic musl executables is a bit messy, so we can't use -target x86_64-linux-musl
+# https://github.com/ziglang/zig/issues/11909
+
+musl_mallocng_initialized.out: musl_mallocng_initialized.c
+	@echo "[+] Building musl_mallocng_initialized.out"
+	${ZIGCC} \
+		-I${MUSL_1_2_4}/usr/include \
+		-o musl_mallocng_initialized.out musl_mallocng_initialized.c \
+		-L${MUSL_1_2_4}/usr/lib/ \
+		-L${MUSL_1_2_4}/lib/ \
+		-lc -dynamic \
+		-Wl,-rpath=${MUSL_1_2_4}/usr/lib/ \
+		-Wl,--dynamic-linker=${MUSL_1_2_4}/lib/ld-musl-x86_64.so.1
+
+
