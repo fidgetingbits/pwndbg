@@ -98,7 +98,7 @@ def gap_maps() -> None:
 )
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(
-    gdbval_or_str=None, writable=False, executable=False, lines_after=1, lines_before=1
+    gdbval_or_str=None, writable=False, executable=False, lines_after=1, lines_before=1, gaps=False
 ) -> None:
     lookaround_lines_limit = 64
 
