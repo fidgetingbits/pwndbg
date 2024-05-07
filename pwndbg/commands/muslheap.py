@@ -54,7 +54,7 @@ parser = argparse.ArgumentParser(
 # @pwndbg.commands.OnlyWithResolvedHeapSyms
 # @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
-def mheapinfo2() -> None:
+def mheapinfo() -> None:
     """Display mallocng global information, like `heapinfo` command in Pwngdb
 
     Usage: mheapinfo"""
@@ -150,7 +150,7 @@ parser = argparse.ArgumentParser(
 # should maybe be moved to some musl-specific command if it's kept at all
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MUSLHEAP)
 @pwndbg.commands.OnlyWhenUserspace
-def mmagic2() -> None:
+def mmagic() -> None:
     """Display useful variables and functions in musl-libc
 
     Usage: mmagic
@@ -209,7 +209,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MUSLHEAP)
 @pwndbg.commands.OnlyWhenUserspace
-def mfindslot2(addr=None) -> None:
+def mfindslot(addr=None) -> None:
     """Find the slot index of the given address in the active bins
 
     Usage: mfindslot <address>
@@ -283,7 +283,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MUSLHEAP)
 @pwndbg.commands.OnlyWhenUserspace
-def mchunkinfo2(addr=None) -> None:
+def mchunkinfo(addr=None) -> None:
     """Find the slot index of the given address in the active bins
 
     Usage: mchunkinfo <address>
