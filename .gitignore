@@ -25,6 +25,7 @@ var/
 *.egg
 
 !/pwndbg/lib/
+!/tests/**/musls/**/lib/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -91,5 +92,6 @@ gdb.txt
 # venv
 .venv/
 
-# Nix build stuff
+# Nix build and development shell
 result*
+.direnv/
