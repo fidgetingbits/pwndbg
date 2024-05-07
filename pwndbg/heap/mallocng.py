@@ -6,34 +6,20 @@ from pathlib import Path
 import gdb
 
 import pwndbg.gdblib.symbol
-from pwndbg.color import message
+from pwndbg.color import (
+    message,
+    purple,
+    bold_red,
+    bold_green,
+    bold_yellow,
+    bold_blue,
+    bold_purple,
+    bold_white,
+)
 from pwndbg.constants import mallocng
 
-# http://git.musl-libc.org/cgit/musl/tree/src/malloc/mallocng/malloc.c?h=v1.2.2#n40
-# `ctx` (or `__malloc_context`) contains mallocng internal status (such as `active` and `free_meta_head`)
-# FIXME: Switch these with some pwndbg coloring
-RED_BOLD = lambda x: "\033[1;31m" + str(x) + "\033[m"
-GREEN_BOLD = lambda x: "\033[1;32m" + str(x) + "\033[m"
-YLW_BOLD = lambda x: "\033[1;33m" + str(x) + "\033[m"
-BLUE_BOLD = lambda x: "\033[1;34m" + str(x) + "\033[m"
-MGNT_BOLD = lambda x: "\033[1;35m" + str(x) + "\033[m"
-CYAN_BOLD = lambda x: "\033[1;36m" + str(x) + "\033[m"
-WHT_BOLD = lambda x: "\033[1;37m" + str(x) + "\033[m"
 
-YLW = lambda x: "\033[0;33m" + str(x) + "\033[m"
-BLUE = lambda x: "\033[0;34m" + str(x) + "\033[m"
-MGNT = lambda x: "\033[0;35m" + str(x) + "\033[m"
-WHT = lambda x: "\033[0;37m" + str(x) + "\033[m"
-
-
-# TODO:
-# replace all color references
-# replace _hex() and _bin() with ??
-# replace Printer with ???
-
-
-# FIXME: replace these
-# FIXME: Find some pwndbg replacement
+# FIXME: Find some pwndbg replacement?
 class Printer:
     """A helper class for pretty printing"""
 
@@ -72,10 +58,10 @@ class Printer:
             header = self.HEADER_CLR(header)
         # Coloring (warning)
         if warning:
-            warning = YLW_BOLD("[" + warning + "]")
+            warning = bold_yellow("[" + warning + "]")
             # Coloring (content)
-            # Use RED_BOLD for content coloring if warning message is given
-            content = RED_BOLD(content)
+            # Use bold_red for content coloring if warning message is given
+            content = bold_red(content)
         elif self.CONTENT_CLR:
             content = self.CONTENT_CLR(content)
 
@@ -87,6 +73,7 @@ class Printer:
         print(ctx)
 
 
+# FIXME: Is there an existing version of this somewhere already in pwndbg?
 def _hex(x):
     try:
         return hex(x)
@@ -96,6 +83,7 @@ def _hex(x):
         return hex(int(x) & pwndbg.gdblib.arch.ptrmask)
 
 
+# FIXME: Is there an existing version of this somewhere already in pwndbg?
 def _bin(x):
     try:
         return bin(x)
@@ -125,8 +113,8 @@ def generate_mask_str(avail_mask, freed_mask):
     ab = ab.zfill(maxlen)  # fills '0'
     fb = fb.zfill(maxlen)
 
-    avail_str = ah + WHT_BOLD(" (0b%s)" % ab)
-    freed_str = fh + WHT_BOLD(" (0b%s)" % fb)
+    avail_str = ah + bold_white(" (0b%s)" % ab)
+    freed_str = fh + bold_white(" (0b%s)" % fb)
     return (avail_str, freed_str)
 
 
@@ -141,9 +129,9 @@ def generate_slot_map(meta, mask_index=None):
     """
 
     legend = " (%s: Inuse / %s: Available / %s: Freed)" % (
-        WHT_BOLD("U"),
-        GREEN_BOLD("A"),
-        RED_BOLD("F"),
+        bold_white("U"),
+        bold_green("A"),
+        bold_red("F"),
     )
 
     avail_mask = meta["avail_mask"]
@@ -157,13 +145,13 @@ def generate_slot_map(meta, mask_index=None):
         freed = freed_mask & 1
         if not freed and not avail:
             # Inuse
-            s = WHT_BOLD("U")
+            s = bold_white("U")
         elif not freed and avail:
             # Available
-            s = GREEN_BOLD("A")
+            s = bold_green("A")
         elif freed and not avail:
             # Freed
-            s = RED_BOLD("F")
+            s = bold_red("F")
         else:
             s = "?"
         # Mask the slot with index `mask_index` in the map
@@ -176,11 +164,11 @@ def generate_slot_map(meta, mask_index=None):
 
     if slot_count > 1:
         mapstr += " (from slot %s to slot %s)" % (
-            BLUE_BOLD(slot_count - 1),
-            BLUE_BOLD("0"),
+            bold_blue(slot_count - 1),
+            bold_blue("0"),
         )
 
-    output = MGNT_BOLD("\nSlot status map: ") + mapstr + "\n" + legend
+    output = bold_purple("\nSlot status map: ") + mapstr + "\n" + legend
     return output
 
 
@@ -237,9 +225,11 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     ]
 
     def __init__(self):
+        # http://git.musl-libc.org/cgit/musl/tree/src/malloc/mallocng/malloc.c?h=v1.2.2#n40
+        # `ctx` (or `__malloc_context`) contains mallocng internal status (such as `active` and `free_meta_head`)
         self.ctx = None
 
-    # FIXME: Add heuristic check
+    # FIXME: Add heuristic check similar to baata gef
     def check_mallocng(
         self,
     ):
@@ -367,15 +357,15 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                         result.append((m, slot_index))
                 meta_area = meta_area["next"]
         except gdb.MemoryError as e:
-            print(RED_BOLD("ERROR:"), str(e))
+            print(bold_red("ERROR:"), str(e))
 
         return result
 
     def display_meta(self, meta, index):
         """Display slot information (No validation check due to leak of in-band meta)"""
 
-        print(WHT_BOLD("\n================== META ================== ") + "(at %s)" % _hex(meta))
-        printer = Printer(header_clr=MGNT_BOLD, content_clr=BLUE_BOLD, header_rjust=13)
+        print(bold_white("\n================== META ================== ") + "(at %s)" % _hex(meta))
+        printer = Printer(header_clr=bold_purple, content_clr=bold_blue, header_rjust=13)
         P = printer.print
 
         avail_mask = meta["avail_mask"]
@@ -411,20 +401,20 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         if sc == 63:
             stride = self.get_stride(meta)
             if stride:
-                P("sizeclass", "63 " + WHT_BOLD(" (stride: 0x%lx)" % stride))
+                P("sizeclass", "63 " + bold_white(" (stride: 0x%lx)" % stride))
             else:
-                P("sizeclass", "63 " + WHT_BOLD(" (stride: ?)"))
+                P("sizeclass", "63 " + bold_white(" (stride: ?)"))
         elif sc < 48:
             sc_stride = mallocng.UNIT * self.size_classes[sc]
             real_stride = self.get_stride(meta)
             if not real_stride:
-                stride_tips = WHT_BOLD("(stride: 0x%lx, real_stride: ?)" % sc_stride)
+                stride_tips = bold_white("(stride: 0x%lx, real_stride: ?)" % sc_stride)
             elif sc_stride != real_stride:
-                stride_tips = WHT_BOLD(
+                stride_tips = bold_white(
                     "(stride: 0x%lx, real_stride: 0x%lx)" % (sc_stride, real_stride)
                 )
             else:
-                stride_tips = WHT_BOLD("(stride: 0x%lx)" % sc_stride)
+                stride_tips = bold_white("(stride: 0x%lx)" % sc_stride)
             P("sizeclass", "%d %s" % (sc, stride_tips))
         else:
             P("sizeclass", sc, "EXPECT: sizeclass < 48 || sizeclass == 63")
@@ -452,16 +442,16 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                 if not objfile or objfile.startswith("["):
                     continue
                 if group_addr > start and group_addr < end:
-                    method = "donated from %s" % WHT_BOLD(objfile)
+                    method = "donated from %s" % bold_white(objfile)
                     break
             else:
                 method = "donated from an unknown object file"
         elif not meta["maplen"]:
             # XXX: Find out which group is used.
-            method = WHT_BOLD("another group's slot")
+            method = bold_white("another group's slot")
         else:
-            method = WHT_BOLD("individual mmap")
-        print(MGNT_BOLD("\nGroup allocation method : ") + method)
+            method = bold_white("individual mmap")
+        print(bold_purple("\nGroup allocation method : ") + method)
 
         # Display slot status map
         print(generate_slot_map(meta, index))
@@ -469,8 +459,8 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     def display_slot(self, p, meta, index):
         """Display slot information"""
 
-        print(WHT_BOLD("\n================== SLOT ================== "))
-        printer = Printer(header_clr=MGNT_BOLD, content_clr=BLUE_BOLD, header_rjust=10)
+        print(bold_white("\n================== SLOT ================== "))
+        printer = Printer(header_clr=bold_purple, content_clr=bold_blue, header_rjust=10)
         P = printer.print
 
         stride = self.get_stride(meta)
@@ -479,17 +469,17 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         # Display the offset from slot to `p`
         offset = int(p - slot_start)
         if offset == 0:
-            offset_tips = WHT_BOLD("0")
+            offset_tips = bold_white("0")
         elif offset > 0:
-            offset_tips = GREEN_BOLD("+" + hex(offset))
+            offset_tips = bold_green("+" + hex(offset))
         else:
-            offset_tips = RED_BOLD(hex(offset))
+            offset_tips = bold_red(hex(offset))
         offset_tips = " (offset: %s)" % offset_tips
 
-        P("address", BLUE_BOLD(_hex(slot_start)) + offset_tips)
+        P("address", bold_blue(_hex(slot_start)) + offset_tips)
         P("index", index)
         P("stride", hex(stride))
-        P("meta obj", MGNT(_hex(meta)))
+        P("meta obj", purple(_hex(meta)))
 
         # Check slot status
         #
@@ -516,15 +506,15 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             userdata_ptr = slot_start + ud_offset
             P(
                 "status",
-                "%s (userdata --> %s)" % (WHT_BOLD("INUSE"), BLUE_BOLD(_hex(userdata_ptr))),
+                "%s (userdata --> %s)" % (bold_white("INUSE"), bold_blue(_hex(userdata_ptr))),
             )
             print("(HINT: use `mchunkinfo %s` to display more details)" % _hex(userdata_ptr))
         elif not freed and avail:
-            P("status", GREEN_BOLD("AVAIL"))
+            P("status", bold_green("AVAIL"))
         elif freed and not avail:
-            P("status", RED_BOLD("FREED"))
+            P("status", bold_red("FREED"))
         else:
-            P("status", WHT_BOLD("?"))
+            P("status", bold_white("?"))
 
     def parse_ib_meta(self, p):
         """Parse 4-byte in-band meta and offset32"""
@@ -542,8 +532,8 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     def display_ib_meta(self, p, ib):
         """Display in-band meta"""
 
-        print(WHT_BOLD("============== IN-BAND META =============="))
-        printer = Printer(header_clr=GREEN_BOLD, content_clr=BLUE_BOLD, header_rjust=13)
+        print(bold_white("============== IN-BAND META =============="))
+        printer = Printer(header_clr=bold_green, content_clr=bold_blue, header_rjust=13)
         P = printer.print
 
         # IB: Check index
@@ -558,7 +548,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         if reserved_in_band < 5:
             P("RESERVED", reserved_in_band)
         elif reserved_in_band == 5:
-            P("RESERVED", "5" + MGNT_BOLD(" (Use reserved in slot end)"))
+            P("RESERVED", "5" + bold_purple(" (Use reserved in slot end)"))
         elif reserved_in_band == 6:
             # This slot may be used as a group in mallocng internal.
             # It can't be freed by free() since `reserved_in_band` is illegal.
@@ -567,9 +557,9 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                 "RESERVED",
                 "%s %s %s"
                 % (
-                    RED_BOLD("6"),
-                    YLW_BOLD("[EXPECT: <= 5]"),
-                    MGNT_BOLD("(This slot may internally used as a group)"),
+                    bold_red("6"),
+                    bold_yellow("[EXPECT: <= 5]"),
+                    bold_purple("(This slot may internally used as a group)"),
                 ),
             )
         else:
@@ -592,7 +582,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             group_ptr = p - (offset32 + 1) * mallocng.UNIT
             P(
                 "OVERFLOW",
-                WHT_BOLD(_hex(overflow_in_band)) + MGNT_BOLD(" (Use 32-bit offset)"),
+                bold_white(_hex(overflow_in_band)) + bold_purple(" (Use 32-bit offset)"),
             )
             if offset32 > 0xFFFF:
                 P("OFFSET_32", "%s (group --> %s)" % (_hex(offset32), _hex(group_ptr)))
@@ -604,15 +594,6 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                     _hex(offset16),
                     "EXPECT: *(uint16_t*)(%s) == 0]" % _hex(p - 2),
                 )
-
-    def display_group(self, group):
-        """Display group information"""
-        print(
-            WHT_BOLD("\n================= GROUP ================== ")
-            + "(at %s)" % _hex(group.address)
-        )
-        printer = Printer(header_clr=CYAN_BOLD, content_clr=BLUE_BOLD, header_rjust=13)
-        P = printer.print
 
         P("meta", _hex(group["meta"]))
         P("active_idx", int(group["active_idx"]))
@@ -626,8 +607,8 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         else:
             offset = ib["offset32"]
 
-        print(WHT_BOLD("\n================== META ================== ") + "(at %s)" % _hex(meta))
-        printer = Printer(header_clr=MGNT_BOLD, content_clr=BLUE_BOLD, header_rjust=13)
+        print(bold_white("\n================== META ================== ") + "(at %s)" % _hex(meta))
+        printer = Printer(header_clr=bold_purple, content_clr=bold_blue, header_rjust=13)
         P = printer.print
 
         # META: Check prev, next (no validation)
@@ -683,20 +664,20 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         if sc == 63:
             stride = self.get_stride(meta)
             if stride:
-                P("sizeclass", "63 " + WHT_BOLD(" (stride: 0x%lx)" % stride))
+                P("sizeclass", "63 " + bold_white(" (stride: 0x%lx)" % stride))
             else:
-                P("sizeclass", "63 " + WHT_BOLD(" (stride: ?)"))
+                P("sizeclass", "63 " + bold_white(" (stride: ?)"))
         elif sc < 48:
             sc_stride = mallocng.UNIT * self.size_classes[sc]
             real_stride = self.get_stride(meta)
             if not real_stride:
-                stride_tips = WHT_BOLD("(stride: 0x%lx, real_stride: ?)" % sc_stride)
+                stride_tips = bold_white("(stride: 0x%lx, real_stride: ?)" % sc_stride)
             elif sc_stride != real_stride:
-                stride_tips = WHT_BOLD(
+                stride_tips = bold_white(
                     "(stride: 0x%lx, real_stride: 0x%lx)" % (sc_stride, real_stride)
                 )
             else:
-                stride_tips = WHT_BOLD("(stride: 0x%lx)" % sc_stride)
+                stride_tips = bold_white("(stride: 0x%lx)" % sc_stride)
             bad = 0
             if not (offset >= self.size_classes[sc] * index):
                 P(
@@ -752,16 +733,16 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                 if not objfile or objfile.startswith("["):
                     continue
                 if group_addr > start and group_addr < end:
-                    method = "donated from %s" % WHT_BOLD(objfile)
+                    method = "donated from %s" % bold_white(objfile)
                     break
             else:
                 method = "donated from an unknown object file"
         elif not meta["maplen"]:
             # XXX: Find out which group is used.
-            method = WHT_BOLD("another group's slot")
+            method = bold_white("another group's slot")
         else:
-            method = WHT_BOLD("individual mmap")
-        print(MGNT_BOLD("\nGroup allocation method : ") + method)
+            method = bold_white("individual mmap")
+        print(bold_purple("\nGroup allocation method : ") + method)
 
         # Display slot status map
         print(generate_slot_map(meta, index))
@@ -769,7 +750,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
     def display_nontrivial_free(self, ib, group):
         """Display the result of nontrivial_free()"""
 
-        printer = Printer(header_clr=MGNT_BOLD, content_clr=GREEN_BOLD)
+        printer = Printer(header_clr=bold_purple, content_clr=bold_green)
         P = printer.print
         print()
 
@@ -805,55 +786,17 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                     "EXPECT: sizeclass < 48",
                 )
         else:
-            P("Result of nontrivial_free()", WHT_BOLD("Do nothing"))
-
-        # dequeue
-        if print_dq:
-            print(GREEN_BOLD("  dequeue:"))
-            prev_next = MGNT("*" + _hex(meta["prev"]["next"].address))
-            prev_next = BLUE_BOLD("prev->next(") + prev_next + BLUE_BOLD(")")
-            next_prev = MGNT("*" + _hex(meta["next"]["prev"].address))
-            next_prev = BLUE_BOLD("next->prev(") + next_prev + BLUE_BOLD(")")
-            next = BLUE_BOLD("next(") + MGNT(_hex(meta["next"])) + BLUE_BOLD(")")
-            prev = BLUE_BOLD("prev(") + MGNT(_hex(meta["prev"])) + BLUE_BOLD(")")
-            print("  \t%s = %s" % (prev_next, next))  # prev->next(XXX) = next(XXX)
-            print("  \t%s = %s" % (next_prev, prev))  # next->prev(XXX) = prev(XXX)
-        # free_group
-        if print_fg:
-            print(GREEN_BOLD("  free_group:"))
-            if meta["maplen"]:
-                free_method = "munmap (len=0x%lx)" % (int(meta["maplen"]) * 4096)
-            else:
-                free_method = "nontrivial_free()"
-            print(
-                " \t%s%s%s%s"
-                % (
-                    BLUE_BOLD("group object at "),
-                    MGNT(_hex(meta["mem"])),
-                    BLUE_BOLD(" will be freed by "),
-                    CYAN_BOLD(free_method),
-                )
-            )
-        # free_meta
-        if print_fm:
-            print(GREEN_BOLD("  free_meta:"))
-            print(
-                " \t%s%s%s"
-                % (
-                    BLUE_BOLD("meta object at "),
-                    MGNT(_hex(meta)),
-                    BLUE_BOLD(" will be freed and inserted into free_meta chain"),
-                )
-            )
+            P("Result of nontrivial_free()", bold_white("Do nothing"))
 
     # FIXME: This is mostly duplicated above in display_slot()
     def display_slot2(self, p, ib, slot_start, slot_end):
         """Display slot information"""
 
         print(
-            WHT_BOLD("\n================== SLOT ================== ") + "(at %s)" % _hex(slot_start)
+            bold_white("\n================== SLOT ================== ")
+            + "(at %s)" % _hex(slot_start)
         )
-        printer = Printer(header_clr=BLUE_BOLD, content_clr=WHT_BOLD, header_rjust=20)
+        printer = Printer(header_clr=bold_blue, content_clr=bold_white, header_rjust=20)
         P = printer.print
 
         # SLOT: Check cycling offset

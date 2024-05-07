@@ -5,27 +5,25 @@ import argparse
 import gdb
 
 import pwndbg.commands
-from pwndbg.color import message
+import pwndbg.color
+from pwndbg.color import (
+    message,
+    bold,
+    green,
+    purple,
+    white,
+    bold_red,
+    bold_green,
+    bold_blue,
+    bold_purple,
+    bold_white,
+)
 from pwndbg.commands import CommandCategory
 from pwndbg.constants import mallocng
 from pwndbg.heap.mallocng import MuslMallocngMemoryAllocator
 from pwndbg.heap.mallocng import Printer
 
 mheap = MuslMallocngMemoryAllocator()
-
-# FIXME: replace with pwndbg equivalent
-RED_BOLD = lambda x: "\033[1;31m" + str(x) + "\033[m"
-GREEN_BOLD = lambda x: "\033[1;32m" + str(x) + "\033[m"
-YLW_BOLD = lambda x: "\033[1;33m" + str(x) + "\033[m"
-BLUE_BOLD = lambda x: "\033[1;34m" + str(x) + "\033[m"
-MGNT_BOLD = lambda x: "\033[1;35m" + str(x) + "\033[m"
-CYAN_BOLD = lambda x: "\033[1;36m" + str(x) + "\033[m"
-WHT_BOLD = lambda x: "\033[1;37m" + str(x) + "\033[m"
-
-YLW = lambda x: "\033[0;33m" + str(x) + "\033[m"
-BLUE = lambda x: "\033[0;34m" + str(x) + "\033[m"
-MGNT = lambda x: "\033[0;35m" + str(x) + "\033[m"
-WHT = lambda x: "\033[0;37m" + str(x) + "\033[m"
 
 
 def _hex(x):
@@ -61,7 +59,7 @@ def mheapinfo() -> None:
     if not mheap.check_mallocng():
         return
 
-    printer = Printer(header_clr=MGNT_BOLD, content_clr=WHT_BOLD, header_rjust=16)
+    printer = Printer(header_clr=bold_purple, content_clr=bold_white, header_rjust=16)
     P = printer.print
 
     # Print out useful fields in __malloc_context
@@ -71,69 +69,69 @@ def mheapinfo() -> None:
     # Print out avaible meta objects
     P(
         "avail_meta",
-        BLUE_BOLD(_hex(mheap.ctx["avail_meta"]))
-        + WHT_BOLD(" (count: %d)" % mheap.ctx["avail_meta_count"]),
+        bold(green((_hex(mheap.ctx["avail_meta"]))))
+        + bold(white(" (count: %d)" % mheap.ctx["avail_meta_count"])),
     )
 
     # Walk and print out free_meta chain
     m = head = mheap.ctx["free_meta_head"]
     if head:
-        s = BLUE_BOLD(_hex(head))
+        s = bold_blue(_hex(head))
         try:
             while head != m["next"]:
                 m = m["next"]
-                s += WHT_BOLD(" -> ") + BLUE_BOLD(_hex(m))
+                s += bold_white(" -> ") + bold_blue(_hex(m))
         except gdb.MemoryError:
             # Most recently accessed memory may be invaild
-            s += RED_BOLD(" (Invaild memory)")
+            s += bold_red(" (Invaild memory)")
         finally:
             P("free_meta", s)
     else:
-        P("free_meta", WHT_BOLD("0"))
+        P("free_meta", bold_white("0"))
 
     # Print out avaible meta areas
     P(
         "avail_meta_area",
-        BLUE_BOLD(_hex(mheap.ctx["avail_meta_areas"]))
-        + WHT_BOLD(" (count: %d)" % mheap.ctx["avail_meta_area_count"]),
+        bold_blue(_hex(mheap.ctx["avail_meta_areas"]))
+        + bold_white(" (count: %d)" % mheap.ctx["avail_meta_area_count"]),
     )
 
     # Walk and print out meta_area chain
     ma = mheap.ctx["meta_area_head"]
     if ma:
-        s = BLUE_BOLD(_hex(ma))
+        s = bold_blue(_hex(ma))
         try:
             while ma["next"]:
                 ma = ma["next"]
-                s += WHT_BOLD(" -> ") + BLUE_BOLD(_hex(ma))
+                s += bold_white(" -> ") + bold_blue(_hex(ma))
         except gdb.MemoryError:
             # Most recently accessed memory may be invaild
-            s += RED_BOLD(" (Invaild memory)")
+            s += bold_red(" (Invaild memory)")
         finally:
             P("meta_area_head", s)
     else:
-        P("meta_area_head", WHT_BOLD("0"))
+        P("meta_area_head", bold_white("0"))
     if mheap.ctx["meta_area_tail"]:
-        P("meta_area_tail", BLUE_BOLD(_hex(mheap.ctx["meta_area_tail"])))
+        P("meta_area_tail", bold_blue(_hex(mheap.ctx["meta_area_tail"])))
     else:
-        P("meta_area_tail", WHT_BOLD("0"))
+        P("meta_area_tail", bold_white("0"))
 
     # Walk active bin
-    printer.set(header_clr=GREEN_BOLD, content_clr=None)
+    printer.set(header_clr=bold_green, content_clr=None)
     for i in range(48):
         m = head = mheap.ctx["active"][i]
         if head:
-            s = BLUE_BOLD(_hex(m))
+            s = bold_blue(_hex(m))
             try:
                 while True:
-                    s += BLUE_BOLD(" (mem: ") + MGNT(_hex(m["mem"])) + BLUE_BOLD(")")
+                    s += bold_blue(" (mem: ") + purple(_hex(m["mem"])) + bold_blue(")")
                     if head == m["next"]:
                         break
                     m = m["next"]
-                    s += WHT_BOLD(" -> ") + BLUE_BOLD(_hex(m))
+                    s += bold_white(" -> ") + bold_blue(_hex(m))
             except gdb.MemoryError:
                 # Most recently accessed memory may be invaild
-                s += RED_BOLD(" (Invaild memory)")
+                s += bold_red(" (Invaild memory)")
             finally:
                 stride_tips = " [0x%lx]" % (mheap.size_classes[i] * mallocng.UNIT)
                 P("active.[%d]" % i, s + stride_tips)
@@ -165,16 +163,16 @@ def mmagic() -> None:
     else:
         get_offset = lambda x: int(x) - libcbase
 
-    print(WHT_BOLD("====================== FUNCTIONS ======================"))
+    print(bold_white("====================== FUNCTIONS ======================"))
     ml = max(map(len, mallocng.MAGIC_FUNCTIONS))
     for name in mallocng.MAGIC_FUNCTIONS:
         ptr = gdb.parse_and_eval("&%s" % name)
 
         # Print out function offset
-        info = MGNT_BOLD(name.ljust(ml)) + BLUE_BOLD(" (0x%lx)" % get_offset(ptr))
+        info = bold_purple(name.ljust(ml)) + bold_blue(" (0x%lx)" % get_offset(ptr))
         print(info)
 
-    print(WHT_BOLD("====================== VARIABLES ======================"))
+    print(bold_white("====================== VARIABLES ======================"))
     ml = max(map(len, mallocng.MAGIC_VARIABLES))
     for name in mallocng.MAGIC_VARIABLES:
         ptr = gdb.parse_and_eval("&%s" % name)
@@ -188,7 +186,7 @@ def mmagic() -> None:
             value_hex = (t_size * 2 - len(value_hex)) * "0" + value_hex
 
         # Print out variable info
-        header = MGNT_BOLD(name.ljust(ml)) + BLUE_BOLD(" (0x%lx)" % get_offset(ptr))
+        header = bold_purple(name.ljust(ml)) + bold_blue(" (0x%lx)" % get_offset(ptr))
         print("%s : 0x%s" % (header, value_hex))
 
 
@@ -246,8 +244,8 @@ def mfindslot(addr=None) -> None:
                 meta, index = x
 
     print(
-        GREEN_BOLD("Found:"),
-        "slot index is %s, owned by meta object at %s." % (BLUE_BOLD(index), MGNT(_hex(meta))),
+        bold_green("Found:"),
+        "slot index is %s, owned by meta object at %s." % (bold_blue(index), purple(_hex(meta))),
     )
 
     # Display slot and (out-band) meta information about the slot
@@ -255,7 +253,7 @@ def mfindslot(addr=None) -> None:
         mheap.display_slot(p, meta, index)
         mheap.display_meta(meta, index)
     except gdb.error as e:
-        print(RED_BOLD("ERROR:"), str(e))
+        print(bold_red("ERROR:"), str(e))
         return
 
 
@@ -303,7 +301,7 @@ def mchunkinfo(addr=None) -> None:
     try:
         ib = mheap.parse_ib_meta(p)
     except gdb.error as e:
-        print(RED_BOLD("ERROR:"), str(e))
+        print(bold_red("ERROR:"), str(e))
         return
 
     # Display in-band meta information
@@ -324,7 +322,7 @@ def mchunkinfo(addr=None) -> None:
         mheap.display_group(group)
         mheap.display_meta2(ib, group)
     except gdb.error as e:
-        print(RED_BOLD("ERROR:"), str(e))
+        print(bold_red("ERROR:"), str(e))
         return
 
     # Check if we have vaild stride / sizeclass
@@ -341,9 +339,9 @@ def mchunkinfo(addr=None) -> None:
         try:
             mheap.display_slot2(p, ib, slot_start, slot_end)
         except gdb.error as e:
-            print(RED_BOLD("ERROR:"), str(e))
+            print(bold_red("ERROR:"), str(e))
             return
     else:
         print(
-            RED_BOLD("\nCan't get slot and nontrivial_free() information due to invaild sizeclass")
+            bold_red("\nCan't get slot and nontrivial_free() information due to invaild sizeclass")
         )
