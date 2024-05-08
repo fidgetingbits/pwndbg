@@ -9,6 +9,7 @@
 - [Adding a Configuration Option](#adding-a-configuration-option)
   - [Configuration Docstrings](#configuration-docstrings)
   - [Triggers](#triggers)
+- [Porting public tools](#porting-public-tools)
 - [Random developer notes](#random-developer-notes)
 - [Annotations](#annotations)
   - [Enhancing](#enhancing)
@@ -158,6 +159,12 @@ TODO: There are many places GDB shows docstrings, and they show up slightly diff
 ## Triggers
 
 TODO: If we want to do something when user changes config/theme - we can do it defining a function and decorating it with `pwndbg.config.Trigger`.
+
+# Porting public tools
+
+If porting a public tool to pwndbg, please make a point of crediting the original author in the pwndbg source code. This
+can be a simple comment at the beginning of the file noting the original author and linking to the original tool. Also
+please be sure that the license of the original tool is suitable to porting into pwndbg, such as MIT.
 
 # Random developer notes
 
