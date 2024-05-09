@@ -1,6 +1,6 @@
 - [Development Basics](#development-basics)
   - [Environment setup](#environment-setup)
-    - [Development with Nix](#development-with-nix)
+    - [Development using Nix](#development-using-nix)
   - [Testing](#testing)
     - [Testing under Nix](#testing-under-nix)
   - [Linting](#linting)
@@ -37,10 +37,12 @@ If you'd like to use `docker compose`, you can run
 docker compose run -i main
 ```
 
-### Development with Nix
+### Development using Nix
 
-There is a development shell defined in the flake that should install all of the development requiremnets. You can run
-`nix develop` or automatically enter the environment using `direnv`.
+There is a development shell defined in the flake that should install all of the development requirements. to enter the
+environment run `nix develop` or automatically enter the environment using `direnv`.
+
+When testing development changes run `nix build` and use the copy of the files in the `results/` folder.
 
 ## Testing
 
@@ -79,7 +81,6 @@ def test_hexdump(start_binary):
 
 Note that in the test, we can access `pwndbg` library code like `pwndbg.gdblib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
 
-
 ### Testing under Nix
 
 You will need to build a nix-compatible gdbinit.py file, which you can do with `nix build`. Then simply run the test by
@@ -88,8 +89,6 @@ adding the `--nix` flag:
 ```bash
 ./tests.sh --nix [filter]
 ```
-
-
 
 ## Linting
 
