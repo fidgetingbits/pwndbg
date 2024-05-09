@@ -53,9 +53,7 @@ parser = argparse.ArgumentParser(
 # @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
 def mheapinfo() -> None:
-    """Display mallocng global information, like `heapinfo` command in Pwngdb
-
-    Usage: mheapinfo"""
+    """Dumps the musl mallocng heap state using malloc_context"""
     if not mheap.check_mallocng():
         return
 
@@ -149,10 +147,7 @@ parser = argparse.ArgumentParser(
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MUSLHEAP)
 @pwndbg.commands.OnlyWhenUserspace
 def mmagic() -> None:
-    """Display useful variables and functions in musl-libc
-
-    Usage: mmagic
-    """
+    """Display useful variables and functions in musl-libc"""
     if not mheap.check_mallocng():
         return
 
@@ -192,7 +187,10 @@ def mmagic() -> None:
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
-    description="""Find the slot index of the given address in the active bins""",
+    description="""Find the musl mallocng slot index of the given address
+
+    Usage: mfindslot <address>
+    """,
 )
 
 # FIXME: It would be nice to be able to parse expressions like: (Table *)(0x124)->array
@@ -208,10 +206,7 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MUSLHEAP)
 @pwndbg.commands.OnlyWhenUserspace
 def mfindslot(addr=None) -> None:
-    """Find the slot index of the given address in the active bins
-
-    Usage: mfindslot <address>
-    """
+    """Find the musl mallocng slot index of the given address"""
     if not mheap.check_mallocng():
         return
 
@@ -259,9 +254,9 @@ def mfindslot(addr=None) -> None:
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
-    description="""Display infomation of the memory allocated from mallocng
+    description="""Display the musl mallocng slot (aka chunk) details
 
-    Usage: mchunkinfo <addr>
+    Usage: mslotinfo <addr>
       * addr - A memory address that can be freed by `free()`, usually the one returned from `malloc()`.
             In general, it should be a pointer to the `user_data` field of an *in-use* slot.
             (Use `mfindslot` command to explore a memory address at arbitrary offset of a slot)
@@ -281,11 +276,8 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MUSLHEAP)
 @pwndbg.commands.OnlyWhenUserspace
-def mchunkinfo(addr=None) -> None:
-    """Find the slot index of the given address in the active bins
-
-    Usage: mchunkinfo <address>
-    """
+def mslotinfo(addr=None) -> None:
+    """Display the musl mallocng slot (aka chunk) details"""
 
     if not mheap.check_mallocng():
         return
@@ -313,9 +305,10 @@ def mchunkinfo(addr=None) -> None:
     else:
         offset = ib["offset32"]
     addr = p - (offset + 1) * mallocng.UNIT
-    # HACK: I had to use a custom group type because gdb can't
-    # differentiate duplicate symbols :/
-    group = pwndbg.gdblib.typeinfo.get_pointer_value("struct mgroup", addr)
+    group = pwndbg.gdblib.typeinfo.typed_pointer(mheap.get_group_type(), addr)
+    if not group:
+        print(bold_red("ERROR:"), "Failed to get group object")
+        return
 
     # Display group and (out-band) meta information
     try:

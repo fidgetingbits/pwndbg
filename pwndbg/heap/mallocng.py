@@ -277,6 +277,31 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
         return None
 
+    def get_group_type(self):
+        """Find the struct group indirectly using the meta group
+
+        There is another common `struct group` in grp.h that complicates pulling out the musl mallocng `struct group`,
+        because gdb will favour the first one it finds. And I'm also not sure that we want to rely on a specific context
+        block to pass to lookup_type. So since we know meta use is what we want, we just pull it from there.
+
+        FIXME: This could probably be abstracted to be a helper in pwndbg.gdblib.typeinfo
+        """
+
+        meta_type = gdb.lookup_type("struct meta")
+        if meta_type is None:
+            print(message.error("Type 'struct meta' not found."))
+            return None
+        # Purposely fuzzy find the member in case meta ever changes
+        group_type = None
+        for field in meta_type.fields():
+            if field.type.tag.startswith("struct group *"):
+                group_type = field.type.target()
+                break
+        if group_type is None:
+            print(message.error("Type 'struct group' not found in the 'meta' structure."))
+            return None
+        return group_type
+
     def get_stride(self, g):
         # http://git.musl-libc.org/cgit/musl/tree/src/malloc/mallocng/meta.h?h=v1.2.2#n175
 
@@ -354,6 +379,9 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                             slot_index = 0
                         # We need a pointer (struct meta*), not the object itself
                         m = pwndbg.gdblib.typeinfo.get_pointer("struct meta", meta.address)
+                        if not m:
+                            print(bold_red("ERROR:"), "Failed to get the pointer of struct meta")
+                            return result
                         result.append((m, slot_index))
                 meta_area = meta_area["next"]
         except gdb.MemoryError as e:

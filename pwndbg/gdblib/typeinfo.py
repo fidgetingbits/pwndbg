@@ -130,10 +130,17 @@ def load(name: str) -> Optional[gdb.Type]:
         return None
 
 
+def typed_pointer(type, addr):
+    """Create a gdb.Value object at given address, then cast it to the pointer of specified datatype"""
+    return gdb.Value(addr).cast(type.pointer())
+
+
 def get_pointer(type_name, addr):
     """Create a gdb.Value object at given address, then cast it to the pointer of specified datatype"""
     gdb_type = pwndbg.gdblib.typeinfo.load(type_name)
-    return gdb.Value(addr).cast(gdb_type.pointer())
+    if gdb_type is None:
+        raise ValueError(f"Type '{type_name}' not found")
+    return typed_pointer(gdb_type, addr)
 
 
 def get_pointer_value(type_name, addr):
