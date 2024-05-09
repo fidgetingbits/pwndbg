@@ -130,29 +130,29 @@ def load(name: str) -> Optional[gdb.Type]:
         return None
 
 
-def typed_pointer(type, addr):
+def cast_pointer(type, addr):
     """Create a gdb.Value object at given address, then cast it to the pointer of specified datatype"""
     return gdb.Value(addr).cast(type.pointer())
 
 
-def get_pointer(type_name, addr):
+def get_typed_pointer(type_name, addr):
     """Create a gdb.Value object at given address, then cast it to the pointer of specified datatype"""
     gdb_type = pwndbg.gdblib.typeinfo.load(type_name)
     if gdb_type is None:
         raise ValueError(f"Type '{type_name}' not found")
-    return typed_pointer(gdb_type, addr)
+    return cast_pointer(gdb_type, addr)
 
 
-def get_pointer_value(type_name, addr):
+def get_typed_pointer_value(type_name, addr):
     """Dereference a pointer to a value of the specified type"""
-    return get_pointer(type_name, addr).dereference()
+    return get_typed_pointer(type_name, addr).dereference()
 
 
 # FIXME: This is a duplicate of pwndbg.gdblib.typeinfo.pointer_value, but keeping because it's old
 # code. I think the functionality is no sufficiently implied by the name of the function, given it derefrenes it.
 def read_gdbvalue(type_name: str, addr) -> gdb.Value:
     """Read the memory contents at addr and interpret them as a GDB value with the given type"""
-    return get_pointer(type_name, addr).dereference()
+    return get_typed_pointer(type_name, addr).dereference()
 
 
 def get_type(size: int) -> gdb.Type:
