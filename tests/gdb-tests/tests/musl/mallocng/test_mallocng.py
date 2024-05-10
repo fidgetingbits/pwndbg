@@ -13,13 +13,15 @@ def get_stride_0x10_slot_addr(mheapinfo_output):
     slot_addr = None
     for line in mheapinfo_output.splitlines():
         if "active.[0]" in line:
-            # Expect something like this: active.[0] : 0x2040e0 (mem: 0x7ffff7ffecb0) [0x10]
+            # Expect line to be of form: active.[0] : 0x2040e0 (mem: 0x7ffff7ffecb0) [0x10]
             # Get 0x7ffff7ffecb0) [0x10]
             slot_addr = line.split("mem:")[-1]
             if not slot_addr:
-                raise Exception("Could not find slot address")
+                raise Exception("Could not find slot address. Expected (mem: ...) missing")
             # Get 0x7ffff7ffecb0
             slot_addr = slot_addr.split(")")[0]
+            if not slot_addr:
+                raise Exception("Could not find slot address. Expected (mem: ...) missing")
             break
     return slot_addr
 
