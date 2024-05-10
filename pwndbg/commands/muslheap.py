@@ -305,7 +305,11 @@ def mslotinfo(addr=None) -> None:
     else:
         offset = ib["offset32"]
     addr = p - (offset + 1) * mallocng.UNIT
-    group = pwndbg.gdblib.typeinfo.cast_pointer(mheap.get_group_type(), addr)
+    group_type = mheap.get_group_type()
+    if not group_type:
+        print(message.error("Failed to get mallocng group type"))
+        return
+    group = pwndbg.gdblib.memory.get_typed_pointer_value(group_type, addr)
     if not group:
         print(bold_red("ERROR:"), "Failed to get group object")
         return

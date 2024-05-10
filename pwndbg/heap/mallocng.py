@@ -15,6 +15,7 @@ from pwndbg.color import (
     bold_blue,
     bold_purple,
     bold_white,
+    bold_cyan,
 )
 from pwndbg.constants import mallocng
 
@@ -294,7 +295,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         # Purposely fuzzy find the member in case meta ever changes
         group_type = None
         for field in meta_type.fields():
-            if field.type.tag.startswith("struct group *"):
+            if str(field.type).startswith("struct group *"):
                 group_type = field.type.target()
                 break
         if group_type is None:
@@ -378,7 +379,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                             # However, we set the slot index to 0 (the first slot). It's acceptable in most cases.
                             slot_index = 0
                         # We need a pointer (struct meta*), not the object itself
-                        m = pwndbg.gdblib.typeinfo.get_typed_pointer("struct meta", meta.address)
+                        m = pwndbg.gdblib.memory.get_typed_pointer("struct meta", meta.address)
                         if not m:
                             print(bold_red("ERROR:"), "Failed to get the pointer of struct meta")
                             return result
@@ -413,7 +414,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         P("freed_mask", freed_str)
 
         # META: Check area->check
-        area = pwndbg.gdblib.typeinfo.get_typed_pointer_value("struct meta_area", int(meta) & -4096)
+        area = pwndbg.gdblib.memory.get_typed_pointer_value("struct meta_area", int(meta) & -4096)
         secret = self.ctx["secret"]
         if area["check"] == secret:
             P("area->check", _hex(area["check"]))
@@ -521,10 +522,10 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         if not freed and not avail:
             # Calculate the offset to `user_data` field
             reserved_in_slot_head = (
-                pwndbg.gdblib.typeinfo.get_typed_pointer_value("uint8_t", slot_start - 3) & 0xE0
+                pwndbg.gdblib.memory.get_typed_pointer_value("uint8_t", slot_start - 3) & 0xE0
             ) >> 5
             if reserved_in_slot_head == 7:
-                cycling_offset = pwndbg.gdblib.typeinfo.get_typed_pointer_value(
+                cycling_offset = pwndbg.gdblib.memory.get_typed_pointer_value(
                     "uint16_t", slot_start - 2
                 )
                 ud_offset = cycling_offset * mallocng.UNIT
@@ -548,14 +549,14 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         """Parse 4-byte in-band meta and offset32"""
 
         ib = {
-            "offset16": pwndbg.gdblib.typeinfo.get_typed_pointer_value("uint16_t", p - 2),
-            "index": pwndbg.gdblib.typeinfo.get_typed_pointer_value("uint8_t", p - 3) & 0x1F,
+            "offset16": pwndbg.gdblib.memory.get_typed_pointer_value("uint16_t", p - 2),
+            "index": pwndbg.gdblib.memory.get_typed_pointer_value("uint8_t", p - 3) & 0x1F,
             "reserved_in_band": (
-                pwndbg.gdblib.typeinfo.get_typed_pointer_value("uint8_t", p - 3) & 0xE0
+                pwndbg.gdblib.memory.get_typed_pointer_value("uint8_t", p - 3) & 0xE0
             )
             >> 5,
-            "overflow_in_band": pwndbg.gdblib.typeinfo.get_typed_pointer_value("uint8_t", p - 4),
-            "offset32": pwndbg.gdblib.typeinfo.get_typed_pointer_value("uint32_t", p - 8),
+            "overflow_in_band": pwndbg.gdblib.memory.get_typed_pointer_value("uint8_t", p - 4),
+            "offset32": pwndbg.gdblib.memory.get_typed_pointer_value("uint32_t", p - 8),
         }
         return ib
 
@@ -625,6 +626,16 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                     "EXPECT: *(uint16_t*)(%s) == 0]" % _hex(p - 2),
                 )
 
+    def display_group(self, group):
+        """Display group information"""
+
+        print(
+            bold_white("\n================= GROUP ================== ")
+            + "(at %s)" % _hex(group.address)
+        )
+        printer = Printer(header_clr=bold_cyan, content_clr=bold_blue, header_rjust=13)
+        P = printer.print
+
         P("meta", _hex(group["meta"]))
         P("active_idx", int(group["active_idx"]))
 
@@ -676,7 +687,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             P("freed_mask", freed_str, "EXPECT: !(freed_mask & (1<<index))")
 
         # META: Check area->check
-        area = pwndbg.gdblib.typeinfo.get_typed_pointer_value("struct meta_area", int(meta) & -4096)
+        area = pwndbg.gdblib.memory.get_typed_pointer_value("struct meta_area", int(meta) & -4096)
 
         secret = self.ctx["secret"]
         if area["check"] == secret:
@@ -831,12 +842,12 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
         # SLOT: Check cycling offset
         reserved_in_slot_head = (
-            pwndbg.gdblib.typeinfo.get_typed_pointer_value("uint8_t", slot_start - 3) & 0xE0
+            pwndbg.gdblib.memory.get_typed_pointer_value("uint8_t", slot_start - 3) & 0xE0
         ) >> 5
         if reserved_in_slot_head == 7:
             # If `R` is 7, it indicates that slot header is used to store cycling offset (in `OFF` field)
             # (See http://git.musl-libc.org/cgit/musl/tree/src/malloc/mallocng/meta.h?h=v1.2.2#n217)
-            cycling_offset = pwndbg.gdblib.typeinfo.get_typed_pointer_value(
+            cycling_offset = pwndbg.gdblib.memory.get_typed_pointer_value(
                 "uint16_t", slot_start - 2
             )  # `OFF`
         else:
@@ -854,7 +865,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         if reserved_in_band < 5:
             reserved = reserved_in_band
         elif reserved_in_band == 5:
-            reserved_in_slot_end = pwndbg.gdblib.typeinfo.get_typed_pointer_value(
+            reserved_in_slot_end = pwndbg.gdblib.memory.get_typed_pointer_value(
                 "uint32_t", slot_end - 4
             )
             if reserved_in_slot_end >= 5:
@@ -881,7 +892,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
         # SLOT: Check OVERFLOWs
         if reserved != -1:
-            ud_overflow = pwndbg.gdblib.typeinfo.get_typed_pointer_value(
+            ud_overflow = pwndbg.gdblib.memory.get_typed_pointer_value(
                 "uint8_t", slot_end - reserved
             )
             if not ud_overflow:
@@ -893,9 +904,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                     "EXPECT: *(uint8_t*)(%s) == 0" % _hex(slot_end - reserved),
                 )
             if reserved >= 5:
-                rs_overflow = pwndbg.gdblib.typeinfo.get_typed_pointer_value(
-                    "uint8_t", slot_end - 5
-                )
+                rs_overflow = pwndbg.gdblib.memory.get_typed_pointer_value("uint8_t", slot_end - 5)
                 if not rs_overflow:
                     P("OVERFLOW  (reserved)", 0)
                 else:
@@ -907,7 +916,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         else:
             P("OVERFLOW (user data)", "N/A (reserved size is invaild)")
             P("OVERFLOW  (reserved)", "N/A (reserved size is invaild)")
-        ns_overflow = pwndbg.gdblib.typeinfo.get_typed_pointer_value("uint8_t", slot_end)
+        ns_overflow = pwndbg.gdblib.memory.get_typed_pointer_value("uint8_t", slot_end)
         if not ns_overflow:
             P("OVERFLOW (next slot)", 0)
         else:
