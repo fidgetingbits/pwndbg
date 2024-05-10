@@ -7,6 +7,7 @@ import gdb
 import pytest
 
 import pwndbg
+import pwndbg.lib.strings
 import tests
 
 HEAP_BINARY = tests.binaries.get("musl_mallocng_initialized.out")
@@ -30,13 +31,27 @@ def test_musl_mallocng_mheap(start_binary):
 
 
 def test_musl_mallocng_mheapinfo(start_binary):
+    """Make sure all expected fields are output"""
+
     start_binary(HEAP_BINARY)
     gdb.execute("break break_here")
     gdb.execute("continue")
 
     # Make sure at least one command works
     mheapinfo_output = gdb.execute("mheapinfo", to_string=True)
+    mheapinfo_output = pwndbg.lib.strings.strip_colors(mheapinfo_output)
     assert "secret" in mheapinfo_output
+    assert "mmap_counter" in mheapinfo_output
+    assert "avail_meta" in mheapinfo_output
+    assert "free_meta" in mheapinfo_output
+    assert "avail_meta_area" in mheapinfo_output
+    assert "meta_area_head" in mheapinfo_output
+    assert "meta_area_tail" in mheapinfo_output
+
+    assert "active.[0]" in mheapinfo_output
+    for line in mheapinfo_output.splitlines():
+        if "active.[0]" in line:
+            assert line.endswith("[0x10]")
 
 
 def test_musl_mallocng_mslotfind(start_binary):

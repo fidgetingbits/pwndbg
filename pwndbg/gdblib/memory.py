@@ -306,6 +306,7 @@ def poi(type: gdb.Type, addr: int | gdb.Value) -> gdb.Value:
     """
     return gdb.Value(addr).cast(type.pointer()).dereference()
 
+
 def cast_pointer(type: gdb.Type, addr: int) -> gdb.Value:
     """Create a gdb.Value at given address and cast it to the pointer of specified type"""
     return gdb.Value(addr).cast(type.pointer())
@@ -326,7 +327,7 @@ def get_typed_pointer(type: str | gdb.Type, addr: int) -> gdb.Value:
 
 def get_typed_pointer_value(type_name: str | gdb.Type, addr: int) -> gdb.Value:
     """Read the pointer value of addr cast to type specified by type_name"""
-    return get_typed_pointer(type_name, addr).dereference(
+    return get_typed_pointer(type_name, addr).dereference()
 
 
 @pwndbg.lib.cache.cache_until("stop")

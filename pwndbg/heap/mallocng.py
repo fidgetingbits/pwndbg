@@ -390,6 +390,9 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
         return result
 
+    # Original muslheap lib mfindslot copy of display_meta()
+    # Has limited checks compared to mchunkinfo copy
+    # FIXME: Why? What is this in-band leak
     def display_meta(self, meta, index):
         """Display slot information (No validation check due to leak of in-band meta)"""
 
