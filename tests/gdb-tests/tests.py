@@ -189,7 +189,7 @@ if __name__ == "__main__":
             print("ERROR: No nix-compatible gdbinit.py found. Run nix build")
             sys.exit(1)
         GDB_INIT_PATH = os.path.join(ROOT_DIR, "result/share/pwndbg/gdbinit.py")
-        tests.utils.GDB_INIT_PATH = GDB_INIT_PATH
+        os.environ["GDB_INIT_PATH"] = GDB_INIT_PATH
     ensureZigPath()
     makeBinaries()
     tests: list[str] = getTestsList(args.collect_only, args.test_name_filter)
