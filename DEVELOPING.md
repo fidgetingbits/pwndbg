@@ -162,7 +162,7 @@ TODO: If we want to do something when user changes config/theme - we can do it d
 # Porting public tools
 
 If porting a public tool to pwndbg, please make a point of crediting the original author in the pwndbg source code. This
-can be a simple comment at the beginning of the file noting the original author and linking to the original tool. Also
+can added to [./CREDITS.md] noting the original author/inspiration, and linking to the original tool/article. Also
 please be sure that the license of the original tool is suitable to porting into pwndbg, such as MIT.
 
 # Random developer notes
