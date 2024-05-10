@@ -206,7 +206,11 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MUSLHEAP)
 @pwndbg.commands.OnlyWhenUserspace
 def mfindslot(addr=None) -> None:
-    """Find the musl mallocng slot index of the given address"""
+    """Find the musl mallocng slot index of the given address
+
+    This works by traversing the `ctx.meta_area_head` chain of meta structures and checking if the given address
+    is within the associated group.
+    """
     if not mheap.check_mallocng():
         return
 
@@ -246,7 +250,7 @@ def mfindslot(addr=None) -> None:
     # Display slot and (out-band) meta information about the slot
     try:
         mheap.display_slot(p, meta, index)
-        mheap.display_meta(meta, index)
+        mheap.display_meta(meta, index=index)
     except gdb.error as e:
         print(bold_red("ERROR:"), str(e))
         return
@@ -317,7 +321,8 @@ def mslotinfo(addr=None) -> None:
     # Display group and (out-band) meta information
     try:
         mheap.display_group(group)
-        mheap.display_meta2(ib, group)
+        meta = group["meta"]
+        mheap.display_meta(meta, ib=ib)
     except gdb.error as e:
         print(bold_red("ERROR:"), str(e))
         return

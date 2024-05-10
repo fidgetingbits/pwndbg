@@ -390,104 +390,6 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
         return result
 
-    # Original muslheap lib mfindslot copy of display_meta()
-    # Has limited checks compared to mchunkinfo copy
-    # FIXME: Why? What is this in-band leak
-    def display_meta(self, meta, index):
-        """Display slot information (No validation check due to leak of in-band meta)"""
-
-        print(bold_white("\n================== META ================== ") + "(at %s)" % _hex(meta))
-        printer = Printer(header_clr=bold_purple, content_clr=bold_blue, header_rjust=13)
-        P = printer.print
-
-        avail_mask = meta["avail_mask"]
-        freed_mask = meta["freed_mask"]
-        avail_str, freed_str = generate_mask_str(avail_mask, freed_mask)
-
-        # META: Check prev, next
-        P("prev", _hex(meta["prev"]))
-        P("next", _hex(meta["next"]))
-        # META: Check mem
-        P("mem", _hex(meta["mem"]))
-        # META: Check last_idx
-        P("last_idx", meta["last_idx"])
-        # META: Check avail_mask
-        P("avail_mask", avail_str)
-        # META: Check freed_mask
-        P("freed_mask", freed_str)
-
-        # META: Check area->check
-        area = pwndbg.gdblib.memory.get_typed_pointer_value("struct meta_area", int(meta) & -4096)
-        secret = self.ctx["secret"]
-        if area["check"] == secret:
-            P("area->check", _hex(area["check"]))
-        else:
-            P(
-                "area->check",
-                _hex(area["check"]),
-                "EXPECT: *(0x%lx) == 0x%lx" % (int(meta) & -4096, secret),
-            )
-
-        # META: Check sizeclass
-        sc = int(meta["sizeclass"])
-        if sc == 63:
-            stride = self.get_stride(meta)
-            if stride:
-                P("sizeclass", "63 " + bold_white(" (stride: 0x%lx)" % stride))
-            else:
-                P("sizeclass", "63 " + bold_white(" (stride: ?)"))
-        elif sc < 48:
-            sc_stride = mallocng.UNIT * self.size_classes[sc]
-            real_stride = self.get_stride(meta)
-            if not real_stride:
-                stride_tips = bold_white("(stride: 0x%lx, real_stride: ?)" % sc_stride)
-            elif sc_stride != real_stride:
-                stride_tips = bold_white(
-                    "(stride: 0x%lx, real_stride: 0x%lx)" % (sc_stride, real_stride)
-                )
-            else:
-                stride_tips = bold_white("(stride: 0x%lx)" % sc_stride)
-            P("sizeclass", "%d %s" % (sc, stride_tips))
-        else:
-            P("sizeclass", sc, "EXPECT: sizeclass < 48 || sizeclass == 63")
-
-        # META: Check maplen
-        P("maplen", _hex(meta["maplen"]))
-        # META: Check freeable
-        P("freeable", meta["freeable"])
-
-        # META: Check group allocation method
-        # FIXME: This is duplicated in chunkinfo
-        if not meta["freeable"]:
-            # This group is a donated memory.
-            # That is, it was placed in an unused RW memory area from a object file loaded by ld.so.
-            # (See http://git.musl-libc.org/cgit/musl/tree/src/malloc/mallocng/donate.c?h=v1.2.2#n10)
-
-            group_addr = int(meta["mem"])
-
-            # Find out which object file in memory mappings donated this memory.
-            vmmap = pwndbg.gdblib.vmmap.get()
-            for mapping in vmmap:
-                start = mapping.vaddr
-                end = mapping.vaddr + mapping.memsz
-                objfile = mapping.objfile
-                if not objfile or objfile.startswith("["):
-                    continue
-                if group_addr > start and group_addr < end:
-                    method = "donated from %s" % bold_white(objfile)
-                    break
-            else:
-                method = "donated from an unknown object file"
-        elif not meta["maplen"]:
-            # XXX: Find out which group is used.
-            method = bold_white("another group's slot")
-        else:
-            method = bold_white("individual mmap")
-        print(bold_purple("\nGroup allocation method : ") + method)
-
-        # Display slot status map
-        print(generate_slot_map(meta, index))
-
     def display_slot(self, p, meta, index):
         """Display slot information"""
 
@@ -540,7 +442,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                 "status",
                 "%s (userdata --> %s)" % (bold_white("INUSE"), bold_blue(_hex(userdata_ptr))),
             )
-            print("(HINT: use `mchunkinfo %s` to display more details)" % _hex(userdata_ptr))
+            print("(HINT: use `mslotinfo %s` to display more details)" % _hex(userdata_ptr))
         elif not freed and avail:
             P("status", bold_green("AVAIL"))
         elif freed and not avail:
@@ -642,14 +544,26 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         P("meta", _hex(group["meta"]))
         P("active_idx", int(group["active_idx"]))
 
-    def display_meta2(self, ib, group):
-        """Display (out-band) meta information"""
-        meta = group["meta"]
-        index = ib["index"]
-        if not ib["overflow_in_band"]:
-            offset = ib["offset16"]
-        else:
-            offset = ib["offset32"]
+    # NOTE: Check was added to deduplicate both display_meta() functions from
+    # muslheap, as they were mostly similar.
+    def display_meta(self, meta, ib=None, index=None):
+        """Display meta information
+
+        This gets called in two contexts, one where ib is known and one where index
+        is known.
+        """
+
+        # Careful here with not index, as it can be 0
+        if not ib and index is None:
+            raise ValueError("display_meta() requires either ib or index")
+        group = meta["mem"]
+
+        if ib:
+            index = ib["index"]
+            if not ib["overflow_in_band"]:
+                offset = ib["offset16"]
+            else:
+                offset = ib["offset32"]
 
         print(bold_white("\n================== META ================== ") + "(at %s)" % _hex(meta))
         printer = Printer(header_clr=bold_purple, content_clr=bold_blue, header_rjust=13)
@@ -723,20 +637,22 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             else:
                 stride_tips = bold_white("(stride: 0x%lx)" % sc_stride)
             bad = 0
-            if not (offset >= self.size_classes[sc] * index):
-                P(
-                    "sizeclass",
-                    "%d %s" % (sc, stride_tips),
-                    "EXPECT: offset >= self.size_classes[sizeclass] * index",
-                )
-                bad = 1
-            if not (offset < self.size_classes[sc] * (index + 1)):
-                P(
-                    "sizeclass",
-                    "%d %s" % (sc, stride_tips),
-                    "EXPECT: offset < self.size_classes[sizeclass] * (index + 1)",
-                )
-                bad = 1
+            # Validation requires in-band data, which we won't have from mfindslot
+            if ib:
+                if not (offset >= self.size_classes[sc] * index):
+                    P(
+                        "sizeclass",
+                        "%d %s" % (sc, stride_tips),
+                        "EXPECT: offset >= self.size_classes[sizeclass] * index",
+                    )
+                    bad = 1
+                if not (offset < self.size_classes[sc] * (index + 1)):
+                    P(
+                        "sizeclass",
+                        "%d %s" % (sc, stride_tips),
+                        "EXPECT: offset < self.size_classes[sizeclass] * (index + 1)",
+                    )
+                    bad = 1
             if not bad:
                 P("sizeclass", "%d %s" % (sc, stride_tips))
         else:

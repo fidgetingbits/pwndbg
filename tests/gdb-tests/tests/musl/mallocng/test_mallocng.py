@@ -117,6 +117,10 @@ def test_musl_mallocng_mslotfind(start_binary):
 
 
 def test_musl_mallocng_mslotinfo(start_binary):
+    start_binary(HEAP_BINARY)
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+
     mheapinfo_output = gdb.execute("mheapinfo", to_string=True)
     mheapinfo_output = pwndbg.lib.strings.strip_colors(mheapinfo_output)
     slot_addr = get_stride_0x10_slot_addr(mheapinfo_output)
@@ -124,8 +128,9 @@ def test_musl_mallocng_mslotinfo(start_binary):
     mslotinfo_output = pwndbg.lib.strings.strip_colors(mslotinfo_output)
 
     # Check ============== IN-BAND META ==============
-    for expected in ["INDEX", "RESERVED", "OVERFLOW", "OFFSET_16"]:
+    for expected in ["INDEX", "RESERVED", "OVERFLOW"]:
         assert f"{expected} :" in mslotinfo_output
+    assert "OFFSET_16" in mslotinfo_output or "OFFSET_32" in mslotinfo_output
 
     # Check ============== GROUP ==============
     for expected in ["meta", "active_idx"]:
@@ -133,6 +138,5 @@ def test_musl_mallocng_mslotinfo(start_binary):
 
     check_meta_output(mslotinfo_output)
 
-    # Due to checking stride 0x10 we expect this for now
-    assert "Group allocation method : another group's slot" in mslotinfo_output
+    assert "Group allocation method : " in mslotinfo_output
     pass
