@@ -249,8 +249,8 @@ def mfindslot(addr=None) -> None:
 
     # Display slot and (out-band) meta information about the slot
     try:
-        mheap.display_slot(p, meta, index)
         mheap.display_meta(meta, index=index)
+        mheap.display_slot(p, meta, index)
     except gdb.error as e:
         print(bold_red("ERROR:"), str(e))
         return

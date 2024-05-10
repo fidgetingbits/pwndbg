@@ -390,6 +390,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
 
         return result
 
+    # Called by mfindslot
     def display_slot(self, p, meta, index):
         """Display slot information"""
 
@@ -556,7 +557,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         # Careful here with not index, as it can be 0
         if not ib and index is None:
             raise ValueError("display_meta() requires either ib or index")
-        group = meta["mem"]
+        group = meta["mem"].dereference()
 
         if ib:
             index = ib["index"]
@@ -748,7 +749,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         else:
             P("Result of nontrivial_free()", bold_white("Do nothing"))
 
-    # FIXME: This is mostly duplicated above in display_slot()
+    # Called by mslotinfo. slot_start, slot_end can be pulled from meta->group->
     def display_slot2(self, p, ib, slot_start, slot_end):
         """Display slot information"""
 
