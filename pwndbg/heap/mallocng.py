@@ -803,7 +803,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
             )
 
     # Called by mslotinfo.
-    def display_slot_ib(self, p, meta, ib):
+    def display_ib_slot(self, p, meta, ib):
         """Display slot in-band information
 
         This expects the slot to be in-use and tries to parse it's in-band data.

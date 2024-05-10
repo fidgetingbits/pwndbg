@@ -54,7 +54,10 @@ def attempt_colorized_symbol(address: int) -> str | None:
         return get(address, symbol)
     return None
 
-def gap(start: int | gdb.Value, end: int | gdb.Value, text: str | None = None, prefix: str | None = None) -> str:
+
+def gap(
+    start: int | gdb.Value, end: int | gdb.Value, text: str | None = None, prefix: str | None = None
+) -> str:
     """
     Returns a colorized string representing a gap between two regions of mapped memory
 
@@ -65,6 +68,7 @@ def gap(start: int | gdb.Value, end: int | gdb.Value, text: str | None = None, p
     """
 
     color = gray
+
 
 def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = None) -> str:
     """
@@ -118,6 +122,7 @@ def legend():
             c.data("DATA"),
             c.rwx("RWX"),
             c.rodata("RODATA"),
-            c.guard("GUARD"),
+            # FIXME: This will require a lot of test to be updated
+            # c.guard("GUARD"),
         )
     )

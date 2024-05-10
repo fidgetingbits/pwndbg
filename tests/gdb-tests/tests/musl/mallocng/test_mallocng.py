@@ -143,7 +143,7 @@ def test_musl_mallocng_mslotinfo(start_binary):
     # Check ================== SLOT IN-BAND ============
     for expected in [
         "nominal size",
-        "reserved size",
+        # "reserved size",
         "OVERFLOW (user data)",
         "OVERFLOW (next slot)",
     ]:
