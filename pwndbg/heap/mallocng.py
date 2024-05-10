@@ -174,6 +174,7 @@ def generate_slot_map(meta, mask_index=None):
 
 
 class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
+    # FIXME: Add a lint bypass to make this stay more readable?
     size_classes = [
         1,
         2,
@@ -230,7 +231,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         # `ctx` (or `__malloc_context`) contains mallocng internal status (such as `active` and `free_meta_head`)
         self.ctx = None
 
-    # FIXME: Add heuristic check similar to baata gef
+    # FIXME: Add heuristic check similar to bata gef
     def check_mallocng(
         self,
     ):
@@ -596,12 +597,15 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         if not (avail_mask & (1 << index)):
             P("avail_mask", avail_str)
         else:
+            # FIXME: This is kinda buggy I think. It assumes you'll only be dumping
+            # slot info from on a non-available chunk.
             P("avail_mask", avail_str, "EXPECT: !(avail_mask & (1<<index))")
 
         # META: Check freed_mask
         if not (freed_mask & (1 << index)):
             P("freed_mask", freed_str)
         else:
+            # FIXME: Also buggy I think, see avail_mask comment
             P("freed_mask", freed_str, "EXPECT: !(freed_mask & (1<<index))")
 
         # META: Check area->check
@@ -620,6 +624,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         # META: Check sizeclass
         sc = int(meta["sizeclass"])
         # FIXME: Make this a constant
+        # 63 is a special sizeclass for single slot group allocations
         if sc == 63:
             stride = self.get_stride(meta)
             if stride:
