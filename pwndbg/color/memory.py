@@ -8,7 +8,7 @@ import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
-from pwndbg.color import normal
+from pwndbg.color import normal, gray
 
 ColorFunction = Callable[[str], str]
 
@@ -21,6 +21,8 @@ c = ColorConfig(
         ColorParamSpec("data", "purple", "color for all other writable memory"),
         ColorParamSpec("rodata", "normal", "color for all read only memory"),
         ColorParamSpec("rwx", "underline", "color added to all RWX memory"),
+        ColorParamSpec("guard", "gray", "color added to all guard pages (no perms)"),
+        ColorParamSpec("gap", "red", "color added for unmapped regions of memory"),
     ],
 )
 
@@ -52,6 +54,17 @@ def attempt_colorized_symbol(address: int) -> str | None:
         return get(address, symbol)
     return None
 
+def gap(start: int | gdb.Value, end: int | gdb.Value, text: str | None = None, prefix: str | None = None) -> str:
+    """
+    Returns a colorized string representing a gap between two regions of mapped memory
+
+      Arguments:
+        address(int | gdb.Value): Address to look up
+        text(str | None): Optional text to use in place of the address in the return value string.
+        prefix(str | None): Optional text to set at beginning in the return value string.
+    """
+
+    color = gray
 
 def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = None) -> str:
     """
@@ -75,6 +88,8 @@ def get(address: int | gdb.Value, text: str | None = None, prefix: str | None = 
         color = c.code
     elif page.rw:
         color = c.data
+    elif page.is_guard:
+        color = c.guard
     else:
         color = c.rodata
 
@@ -103,5 +118,6 @@ def legend():
             c.data("DATA"),
             c.rwx("RWX"),
             c.rodata("RODATA"),
+            c.guard("GUARD"),
         )
     )
