@@ -252,7 +252,7 @@ def mfindslot(addr=None) -> None:
         mheap.display_meta(meta, index=index)
         if meta == 0:
             return
-        mheap.display_slot_ob(p, meta, index)
+        mheap.display_ob_slot(p, meta, index)
     except gdb.error as e:
         print(message.error("ERROR: " + str(e)))
         return
@@ -337,7 +337,7 @@ def mslotinfo(addr=None) -> None:
 
         # Display slot information
         try:
-            mheap.display_slot_ib(p, group["meta"], ib)
+            mheap.display_ib_slot(p, group["meta"], ib)
         except gdb.error as e:
             print(bold_red("ERROR:"), str(e))
             return

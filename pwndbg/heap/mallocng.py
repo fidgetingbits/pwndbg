@@ -392,7 +392,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         return result
 
     # Called by mfindslot
-    def display_slot_ob(self, p, meta, index):
+    def display_ob_slot(self, p, meta, index):
         """Display slot out-of-band information
 
         This allows you to find information about uninitialized slots.
