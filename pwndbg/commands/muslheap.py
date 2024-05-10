@@ -247,12 +247,14 @@ def mfindslot(addr=None) -> None:
         "slot index is %s, owned by meta object at %s." % (bold_blue(index), purple(_hex(meta))),
     )
 
-    # Display slot and (out-band) meta information about the slot
+    # Display slot and (out-of-band) meta information about the slot
     try:
         mheap.display_meta(meta, index=index)
-        mheap.display_slot(p, meta, index)
+        if meta == 0:
+            return
+        mheap.display_slot_ob(p, meta, index)
     except gdb.error as e:
-        print(bold_red("ERROR:"), str(e))
+        print(message.error("ERROR: " + str(e)))
         return
 
 
@@ -333,13 +335,9 @@ def mslotinfo(addr=None) -> None:
         # Display the result of nontrivial_free()
         mheap.display_nontrivial_free(ib, group)
 
-        # Compute the beginning and the ending address of slot
-        slot_start = group["storage"][stride * ib["index"]].address
-        slot_end = slot_start + stride - mallocng.IB
-
         # Display slot information
         try:
-            mheap.display_slot2(p, ib, slot_start, slot_end)
+            mheap.display_slot_ib(p, group["meta"], ib)
         except gdb.error as e:
             print(bold_red("ERROR:"), str(e))
             return

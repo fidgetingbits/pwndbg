@@ -392,10 +392,13 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         return result
 
     # Called by mfindslot
-    def display_slot(self, p, meta, index):
-        """Display slot information"""
+    def display_slot_ob(self, p, meta, index):
+        """Display slot out-of-band information
 
-        print(bold_white("\n================== SLOT ================== "))
+        This allows you to find information about uninitialized slots.
+        """
+
+        print(bold_white("\n=========== SLOT OUT-OF-BAND ============= "))
         printer = Printer(header_clr=bold_purple, content_clr=bold_blue, header_rjust=10)
         P = printer.print
 
@@ -444,7 +447,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
                 "status",
                 "%s (userdata --> %s)" % (bold_white("INUSE"), bold_blue(_hex(userdata_ptr))),
             )
-            print("(HINT: use `mslotinfo %s` to display more details)" % _hex(userdata_ptr))
+            print("(HINT: use `mslotinfo %s` to display in-band details)" % _hex(userdata_ptr))
         elif not freed and avail:
             P("status", bold_green("AVAIL"))
         elif freed and not avail:
@@ -543,8 +546,11 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         printer = Printer(header_clr=bold_cyan, content_clr=bold_blue, header_rjust=13)
         P = printer.print
 
-        P("meta", _hex(group["meta"]))
+        meta = group["meta"]
+        P("meta", _hex(meta))
         P("active_idx", int(group["active_idx"]))
+        if meta == 0:
+            print(message.warn("WARNING: group.meta is NULL. Likely unintialized IB data."))
 
     # NOTE: Check was added to deduplicate both display_meta() functions from
     # muslheap, as they were mostly similar.
@@ -555,9 +561,12 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         is known.
         """
 
-        # Careful here with not index, as it can be 0
+        # Careful here to avoid 'not index' test, as it can legitimately be 0
         if not ib and index is None:
             raise ValueError("display_meta() requires either ib or index")
+        if meta == 0:
+            print(message.error("ERROR: display_meta() can't parse NULL meta object"))
+            return
         group = meta["mem"].dereference()
 
         if ib:
@@ -594,18 +603,19 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         avail_str, freed_str = generate_mask_str(avail_mask, freed_mask)
 
         # META: Check avail_mask
-        if not (avail_mask & (1 << index)):
+        if ib is None or not (avail_mask & (1 << index)):
             P("avail_mask", avail_str)
         else:
-            # FIXME: This is kinda buggy I think. It assumes you'll only be dumping
-            # slot info from on a non-available chunk.
+            # If we have in-band data, assume we are looking at an in-use chunk,
+            # otherwise fetched IB data could be invalid
             P("avail_mask", avail_str, "EXPECT: !(avail_mask & (1<<index))")
 
         # META: Check freed_mask
-        if not (freed_mask & (1 << index)):
+        if ib is None or not (freed_mask & (1 << index)):
             P("freed_mask", freed_str)
         else:
-            # FIXME: Also buggy I think, see avail_mask comment
+            # If we have in-band data, assume we are looking at an in-use chunk,
+            # otherwise fetched IB data could be invalid
             P("freed_mask", freed_str, "EXPECT: !(freed_mask & (1<<index))")
 
         # META: Check area->check
@@ -682,7 +692,6 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         P("freeable", meta["freeable"])
 
         # META: Check group allocation method
-        # FIXME: This is duplicated elsehwere
         if not meta["freeable"]:
             # This group is a donated memory.
             # That is, it was placed in an unused RW memory area from a object file loaded by ld.so.
@@ -754,12 +763,61 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         else:
             P("Result of nontrivial_free()", bold_white("Do nothing"))
 
-    # Called by mslotinfo. slot_start, slot_end can be pulled from meta->group->
-    def display_slot2(self, p, ib, slot_start, slot_end):
-        """Display slot information"""
+        # dequeue
+        if print_dq:
+            print(bold_green("  dequeue:"))
+            prev_next = purple("*" + _hex(meta["prev"]["next"].address))
+            prev_next = bold_blue("prev->next(") + prev_next + bold_blue(")")
+            next_prev = purple("*" + _hex(meta["next"]["prev"].address))
+            next_prev = bold_blue("next->prev(") + next_prev + bold_blue(")")
+            next = bold_blue("next(") + purple(_hex(meta["next"])) + bold_blue(")")
+            prev = bold_blue("prev(") + purple(_hex(meta["prev"])) + bold_blue(")")
+            print("  \t%s = %s" % (prev_next, next))  # prev->next(XXX) = next(XXX)
+            print("  \t%s = %s" % (next_prev, prev))  # next->prev(XXX) = prev(XXX)
+        # free_group
+        if print_fg:
+            print(bold_green("  free_group:"))
+            if meta["maplen"]:
+                free_method = "munmap (len=0x%lx)" % (int(meta["maplen"]) * 4096)
+            else:
+                free_method = "nontrivial_free()"
+            print(
+                " \t%s%s%s%s"
+                % (
+                    bold_blue("group object at "),
+                    purple(_hex(meta["mem"])),
+                    bold_blue(" will be freed by "),
+                    bold_cyan(free_method),
+                )
+            )
+        # free_meta
+        if print_fm:
+            print(bold_green("  free_meta:"))
+            print(
+                " \t%s%s%s"
+                % (
+                    bold_blue("meta object at "),
+                    purple(_hex(meta)),
+                    bold_blue(" will be freed and inserted into free_meta chain"),
+                )
+            )
+
+    # Called by mslotinfo.
+    def display_slot_ib(self, p, meta, ib):
+        """Display slot in-band information
+
+        This expects the slot to be in-use and tries to parse it's in-band data.
+
+        If the ib data isn't initialized yet, it will fail.
+        """
+
+        index = ib["index"]
+        stride = self.get_stride(meta)
+        slot_start = meta["mem"]["storage"][stride * index].address
+        slot_end = slot_start + stride - mallocng.IB
 
         print(
-            bold_white("\n================== SLOT ================== ")
+            bold_white("\n============= SLOT IN-BAND =============== ")
             + "(at %s)" % _hex(slot_start)
         )
         printer = Printer(header_clr=bold_blue, content_clr=bold_white, header_rjust=20)

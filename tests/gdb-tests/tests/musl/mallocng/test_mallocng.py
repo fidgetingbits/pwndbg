@@ -106,7 +106,7 @@ def test_musl_mallocng_mslotfind(start_binary):
     mfindslot_output = pwndbg.lib.strings.strip_colors(mfindslot_output)
     assert "Found: slot index is" in mfindslot_output
 
-    # Check ================== SLOT ================== fields
+    # Check ================== SLOT OUT-OF-BAND ================== fields
     for expected in ["address", "index", "stride", "meta obj", "status"]:
         assert f"{expected} :" in mfindslot_output
 
@@ -139,4 +139,12 @@ def test_musl_mallocng_mslotinfo(start_binary):
     check_meta_output(mslotinfo_output)
 
     assert "Group allocation method : " in mslotinfo_output
-    pass
+
+    # Check ================== SLOT IN-BAND ============
+    for expected in [
+        "nominal size",
+        "reserved size",
+        "OVERFLOW (user data)",
+        "OVERFLOW (next slot)",
+    ]:
+        assert f"{expected} :" in mslotinfo_output
