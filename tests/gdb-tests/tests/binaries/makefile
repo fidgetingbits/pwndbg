@@ -174,22 +174,21 @@ reference_bin_nopie.i386.out: reference-binary.c
 symbol_1600_and_752.out: symbol_1600_and_752.cpp
 	${CXX} -O0 -ggdb -Wno-pmf-conversions symbol_1600_and_752.cpp -o symbol_1600_and_752.out
 
-# FIXME: move below to their own folder that automatically builds them all for each version of the library we support
-
+# FIXME: move musl tests to their own folder that automatically builds them all for each version of the library we support
 # musl tests
 # Building dynamic musl executables is a bit messy, so we can't use -target x86_64-linux-musl
-# https://github.com/ziglang/zig/issues/11909
-# -I${MUSL_1_2_4}/usr/include
-
+# https://github.com/ziglang/zig/issues/1190
+# In case we need the header files
+# 		-I${MUSL_INCLUDES} \
 musl_mallocng_initialized.out: musl_mallocng_initialized.c
 	@echo "[+] Building musl_mallocng_initialized.out"
 	${ZIGCC} \
-		-I${MUSL_INCLUDES} \
-		-o musl_mallocng_initialized.out musl_mallocng_initialized.c \
 		-L${MUSL_1_2_4}/usr/lib/ \
 		-L${MUSL_1_2_4}/lib/ \
 		-lc -dynamic \
 		-Wl,-rpath=${MUSL_1_2_4}/usr/lib/ \
-		-Wl,--dynamic-linker=${MUSL_1_2_4}/lib/ld-musl-x86_64.so.1
+		-Wl,--dynamic-linker=${MUSL_1_2_4}/lib/ld-musl-x86_64.so.1 \
+		-o musl_mallocng_initialized.out musl_mallocng_initialized.c
+
 
 
