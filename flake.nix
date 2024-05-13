@@ -64,6 +64,13 @@
             inputs.pwndbg = self;
           };
           default = self.packages.${system}.pwndbg;
+          pwndbg-dev = import ./nix/pwndbg.nix {
+            pkgs = pkgsBySystem.${system};
+            python3 = pkgsBySystem.${system}.python3;
+            gdb = pkgsBySystem.${system}.gdb;
+            inputs.pwndbg = self;
+            isDev = true;
+          };
         }
         // (portableDrvs system)
         // (tarballDrv system)

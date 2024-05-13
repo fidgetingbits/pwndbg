@@ -3,6 +3,7 @@
   python3 ? pkgs.python3,
   gdb ? pkgs.gdb,
   inputs ? null,
+  isDev ? false,
 }:
 let
   binPath = pkgs.lib.makeBinPath (
@@ -16,7 +17,12 @@ let
   );
 
   pyEnv = import ./pyenv.nix {
-    inherit pkgs python3 inputs;
+    inherit
+      pkgs
+      python3
+      inputs
+      isDev
+      ;
     lib = pkgs.lib;
   };
 

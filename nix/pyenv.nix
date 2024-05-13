@@ -36,6 +36,11 @@ pkgs.poetry2nix.mkPoetryEnv {
           substituteInPlace setup.py --replace manylinux1 manylinux2014
         '';
       });
+
+      # Dev-only dependencies
+
+      # Because compiling mypy is slow
+      mypy = super.mypy.override { preferWheel = true; };
       types-gdb = super.types-gdb.overridePythonAttrs (old: {
         buildInputs = (old.buildInputs or [ ]) ++ [ super.setuptools ];
       });
