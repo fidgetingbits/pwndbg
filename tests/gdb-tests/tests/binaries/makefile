@@ -28,7 +28,7 @@ endif
 ifeq ($(DEBUG), 1)
 CFLAGS		  +=	  -DDEBUG=1 -ggdb -O0 -gdwarf-4
 else
-CFLAGS		  +=	  -
+CFLAGS		  +=	  -O1
 endif
 
 PWD=$(shell pwd)
