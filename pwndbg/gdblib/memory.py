@@ -5,6 +5,8 @@ Reading, writing, and describing memory.
 from __future__ import annotations
 
 import re
+from typing import Dict
+from typing import Union
 
 import gdb
 
@@ -16,6 +18,9 @@ import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.memory import PAGE_MASK
 from pwndbg.lib.memory import PAGE_SIZE
+
+GdbDict = Dict[str, Union["GdbDict", int]]
+
 
 MMAP_MIN_ADDR = 0x8000
 
@@ -86,7 +91,7 @@ def readtype(gdb_type: gdb.Type, addr: int) -> int:
     Returns:
         :class:`int`
     """
-    return int(gdb.Value(addr).cast(gdb_type.pointer()).dereference())
+    return int(get_typed_pointer_value(gdb_type, addr))
 
 
 def write(addr: int, data: str | bytes | bytearray) -> None:
@@ -298,13 +303,27 @@ def s64(addr: int) -> int:
     return readtype(pwndbg.gdblib.typeinfo.int64, addr)
 
 
-# TODO: `readtype` is just `int(poi(type, addr))`
-def poi(type: gdb.Type, addr: int | gdb.Value) -> gdb.Value:
-    """poi(addr) -> gdb.Value
+def cast_pointer(type: gdb.Type, addr: int) -> gdb.Value:
+    """Create a gdb.Value at given address and cast it to the pointer of specified type"""
+    return gdb.Value(addr).cast(type.pointer())
 
-    Read one ``gdb.Type`` object at the specified address.
-    """
-    return gdb.Value(addr).cast(type.pointer()).dereference()
+
+def get_typed_pointer(type: str | gdb.Type, addr: int) -> gdb.Value:
+    """Look up a type by name if necessary and return a gdb.Value of addr cast to that type"""
+    if isinstance(type, str):
+        gdb_type = pwndbg.gdblib.typeinfo.load(type)
+        if gdb_type is None:
+            raise ValueError(f"Type '{type}' not found")
+    elif isinstance(type, gdb.Type):
+        gdb_type = type
+    else:
+        raise ValueError(f"Invalid type: {type}")
+    return cast_pointer(gdb_type, addr)
+
+
+def get_typed_pointer_value(type_name: str | gdb.Type, addr: int) -> gdb.Value:
+    """Read the pointer value of addr cast to type specified by type_name"""
+    return get_typed_pointer(type_name, addr).dereference()
 
 
 def cast_pointer(type: gdb.Type, addr: int) -> gdb.Value:
@@ -383,3 +402,55 @@ def update_min_addr() -> None:
     global MMAP_MIN_ADDR
     if pwndbg.gdblib.qemu.is_qemu_kernel():
         MMAP_MIN_ADDR = 0
+
+
+def fetch_struct_as_dictionary(
+    struct_name: str,
+    struct_address: int,
+    include_only_fields: set[str] = set(),
+    exclude_fields: set[str] = set(),
+) -> GdbDict:
+    struct_type = gdb.lookup_type("struct " + struct_name)
+    fetched_struct = poi(struct_type, struct_address)
+
+    return pack_struct_into_dictionary(fetched_struct, include_only_fields, exclude_fields)
+
+
+def pack_struct_into_dictionary(
+    fetched_struct: gdb.Value,
+    include_only_fields: set[str] = set(),
+    exclude_fields: set[str] = set(),
+) -> GdbDict:
+    struct_as_dictionary = {}
+
+    if len(include_only_fields) != 0:
+        for field_name in include_only_fields:
+            key = field_name
+            value = convert_gdb_value_to_python_value(fetched_struct[field_name])
+            struct_as_dictionary[key] = value
+    else:
+        for field in fetched_struct.type.fields():
+            if field.name is None:
+                # Flatten anonymous structs/unions
+                anon_type = convert_gdb_value_to_python_value(fetched_struct[field])
+                assert isinstance(anon_type, dict)
+                struct_as_dictionary.update(anon_type)
+            elif field.name not in exclude_fields:
+                key = field.name
+                value = convert_gdb_value_to_python_value(fetched_struct[field])
+                struct_as_dictionary[key] = value
+
+    return struct_as_dictionary
+
+
+def convert_gdb_value_to_python_value(gdb_value: gdb.Value) -> int | GdbDict:
+    gdb_type = gdb_value.type.strip_typedefs()
+
+    if gdb_type.code == gdb.TYPE_CODE_PTR:
+        return int(gdb_value)
+    elif gdb_type.code == gdb.TYPE_CODE_INT:
+        return int(gdb_value)
+    elif gdb_type.code == gdb.TYPE_CODE_STRUCT:
+        return pack_struct_into_dictionary(gdb_value)
+
+    raise NotImplementedError

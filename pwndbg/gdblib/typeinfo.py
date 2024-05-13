@@ -131,12 +131,6 @@ def load(name: str) -> Optional[gdb.Type]:
         return None
 
 
-# FIXME: Consider deprecating this, as the name isn't as intuitive as get_typed_pointer()
-def read_gdbvalue(type_name: str, addr) -> gdb.Value:
-    """Read the memory contents at addr and interpret them as a GDB value with the given type"""
-    return pwndbg.gdblib.memory.get_typed_pointer(type_name, addr).dereference()
-
-
 def get_type(size: int) -> gdb.Type:
     return {
         1: pwndbg.gdblib.typeinfo.uint8,

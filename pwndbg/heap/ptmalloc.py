@@ -154,7 +154,7 @@ class Chunk:
 
     def __init__(self, addr, heap=None, arena=None) -> None:
         if isinstance(pwndbg.heap.current.malloc_chunk, gdb.Type):
-            self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_chunk, addr)
+            self._gdbValue = pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.heap.current.malloc_chunk, addr)
         else:
             self._gdbValue = pwndbg.heap.current.malloc_chunk(addr)
         self.address = int(self._gdbValue.address)
@@ -470,7 +470,7 @@ class Arena:
 
     def __init__(self, addr) -> None:
         if isinstance(pwndbg.heap.current.malloc_state, gdb.Type):
-            self._gdbValue = pwndbg.gdblib.memory.poi(pwndbg.heap.current.malloc_state, addr)
+            self._gdbValue = pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.heap.current.malloc_state, addr)
         else:
             self._gdbValue = pwndbg.heap.current.malloc_state(addr)
 
@@ -1398,7 +1398,7 @@ class DebugSymsHeap(GlibcMemoryAllocator):
                 tcache = self.main_arena.heaps[0].start + pwndbg.gdblib.arch.ptrsize * 2
 
             try:
-                self._thread_cache = pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache)
+                self._thread_cache = pwndbg.gdblib.memory.get_typed_pointer_value(self.tcache_perthread_struct, tcache)
                 self._thread_cache["entries"].fetch_lazy()
             except Exception:
                 print(
@@ -1420,7 +1420,7 @@ class DebugSymsHeap(GlibcMemoryAllocator):
             "mp_"
         ) or pwndbg.gdblib.symbol.address("mp_")
         if self._mp_addr is not None:
-            self._mp = pwndbg.gdblib.memory.poi(self.malloc_par, self._mp_addr)
+            self._mp = pwndbg.gdblib.memory.get_typed_pointer_value(self.malloc_par, self._mp_addr)
 
         return self._mp
 
@@ -1471,13 +1471,13 @@ class DebugSymsHeap(GlibcMemoryAllocator):
 
     def get_heap(self, addr):
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
-        return pwndbg.gdblib.memory.poi(self.heap_info, heap_for_ptr(addr))
+        return pwndbg.gdblib.memory.get_typed_pointer_value(self.heap_info, heap_for_ptr(addr))
 
     def get_tcache(self, tcache_addr=None):
         if tcache_addr is None:
             return self.thread_cache
 
-        return pwndbg.gdblib.memory.poi(self.tcache_perthread_struct, tcache_addr)
+        return pwndbg.gdblib.memory.get_typed_pointer_value(self.tcache_perthread_struct, tcache_addr)
 
     def get_sbrk_heap_region(self):
         """Return a Page object representing the sbrk heap region.

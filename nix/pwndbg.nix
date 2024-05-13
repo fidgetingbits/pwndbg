@@ -26,6 +26,10 @@
         preferWheel = true;
       };
 
+      unix-ar = super.unix-ar.overridePythonAttrs (old: {
+        nativeBuildInputs = (old.nativeBuildInputs or []) ++ [self.setuptools];
+      });
+
       pt = super.pt.overridePythonAttrs (old: {
         buildInputs = (old.buildInputs or []) ++ [super.poetry-core];
       });

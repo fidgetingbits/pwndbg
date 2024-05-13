@@ -206,7 +206,7 @@ def argument(n, abi=None):
 
     sp = pwndbg.gdblib.regs.sp + (n * pwndbg.gdblib.arch.ptrsize)
 
-    return int(pwndbg.gdblib.memory.poi(pwndbg.gdblib.typeinfo.ppvoid, sp))
+    return int(pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.gdblib.typeinfo.ppvoid, sp))
 
 
 def arguments(abi=None):
