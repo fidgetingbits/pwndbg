@@ -72,7 +72,7 @@ class Printer:
         print(ctx)
 
 
-# FIXME: Is there an existing version of this somewhere already in pwndbg?
+# FIXME: Is there an existing version of these somewhere already in pwndbg?
 def _hex(x):
     try:
         return hex(x)
@@ -82,7 +82,6 @@ def _hex(x):
         return hex(int(x) & pwndbg.gdblib.arch.ptrmask)
 
 
-# FIXME: Is there an existing version of this somewhere already in pwndbg?
 def _bin(x):
     try:
         return bin(x)
@@ -239,7 +238,6 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         """
 
         sv = pwndbg.gdblib.symbol.value("__malloc_context")
-        # FIXME: Match pwndbg errors
         if sv is None:
             err_msg = """\
     ERROR: can't find musl-libc debug symbols!
@@ -563,7 +561,7 @@ class MuslMallocngMemoryAllocator(pwndbg.heap.heap.MemoryAllocator):
         if not ib and index is None:
             raise ValueError("display_meta() requires either ib or index")
         if meta == 0:
-            print(message.error("ERROR: display_meta() can't parse NULL meta object"))
+            print(message.warn("WARNING: display_meta() can't parse NULL meta object"))
             return
         group = meta["mem"].dereference()
 

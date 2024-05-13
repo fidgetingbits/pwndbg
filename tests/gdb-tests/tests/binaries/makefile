@@ -180,11 +180,13 @@ symbol_1600_and_752.out: symbol_1600_and_752.cpp
 # https://github.com/ziglang/zig/issues/1190
 # In case we need the header files
 # 		-I${MUSL_INCLUDES} \
+
+
 musl_mallocng_initialized.out: musl_mallocng_initialized.c
 	@echo "[+] Building musl_mallocng_initialized.out"
 	${ZIGCC} \
-		-L${MUSL_1_2_4}/usr/lib/ \
 		-L${MUSL_1_2_4}/lib/ \
+		-L${MUSL_1_2_4}/usr/lib/ \
 		-lc -dynamic \
 		-Wl,-rpath=${MUSL_1_2_4}/usr/lib/ \
 		-Wl,--dynamic-linker=${MUSL_1_2_4}/lib/ld-musl-x86_64.so.1 \

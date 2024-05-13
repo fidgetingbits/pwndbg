@@ -297,7 +297,7 @@ def mslotinfo(addr=None) -> None:
     try:
         ib = mheap.parse_ib_meta(p)
     except gdb.error as e:
-        print(bold_red("ERROR:"), str(e))
+        print(message.error("ERROR:"), str(e))
         return
 
     # Display in-band meta information
@@ -315,16 +315,19 @@ def mslotinfo(addr=None) -> None:
         return
     group = pwndbg.gdblib.memory.get_typed_pointer_value(group_type, addr)
     if not group:
-        print(bold_red("ERROR:"), "Failed to get group object")
+        print(message.error("ERROR:"), "Failed to get group object")
         return
 
     # Display group and (out-band) meta information
     try:
         mheap.display_group(group)
         meta = group["meta"]
+        if not meta:
+            print(message.error("Failed to find meta object"))
+            return
         mheap.display_meta(meta, ib=ib)
     except gdb.error as e:
-        print(bold_red("ERROR:"), str(e))
+        print(message.error("ERROR:"), str(e))
         return
 
     # Check if we have vaild stride / sizeclass
@@ -337,9 +340,11 @@ def mslotinfo(addr=None) -> None:
         try:
             mheap.display_ib_slot(p, group["meta"], ib)
         except gdb.error as e:
-            print(bold_red("ERROR:"), str(e))
+            print(message.error("ERROR:"), str(e))
             return
     else:
         print(
-            bold_red("\nCan't get slot and nontrivial_free() information due to invaild sizeclass")
+            message.error(
+                "\nCan't get slot and nontrivial_free() information due to invaild sizeclass"
+            )
         )
