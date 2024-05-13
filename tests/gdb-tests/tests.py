@@ -5,11 +5,12 @@ import concurrent.futures
 import os
 import re
 import subprocess
-import time
 import sys
-import tests.utils
+import time
 from subprocess import CompletedProcess
 from typing import Tuple
+
+import tests.utils
 
 ROOT_DIR = os.path.realpath("../../")
 GDB_INIT_PATH = os.path.join(ROOT_DIR, "gdbinit.py")

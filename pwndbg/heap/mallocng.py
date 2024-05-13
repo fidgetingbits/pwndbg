@@ -6,17 +6,15 @@ from pathlib import Path
 import gdb
 
 import pwndbg.gdblib.symbol
-from pwndbg.color import (
-    message,
-    purple,
-    bold_red,
-    bold_green,
-    bold_yellow,
-    bold_blue,
-    bold_purple,
-    bold_white,
-    bold_cyan,
-)
+from pwndbg.color import bold_blue
+from pwndbg.color import bold_cyan
+from pwndbg.color import bold_green
+from pwndbg.color import bold_purple
+from pwndbg.color import bold_red
+from pwndbg.color import bold_white
+from pwndbg.color import bold_yellow
+from pwndbg.color import message
+from pwndbg.color import purple
 from pwndbg.constants import mallocng
 
 

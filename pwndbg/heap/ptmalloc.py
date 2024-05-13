@@ -154,7 +154,9 @@ class Chunk:
 
     def __init__(self, addr, heap=None, arena=None) -> None:
         if isinstance(pwndbg.heap.current.malloc_chunk, gdb.Type):
-            self._gdbValue = pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.heap.current.malloc_chunk, addr)
+            self._gdbValue = pwndbg.gdblib.memory.get_typed_pointer_value(
+                pwndbg.heap.current.malloc_chunk, addr
+            )
         else:
             self._gdbValue = pwndbg.heap.current.malloc_chunk(addr)
         self.address = int(self._gdbValue.address)
@@ -470,7 +472,9 @@ class Arena:
 
     def __init__(self, addr) -> None:
         if isinstance(pwndbg.heap.current.malloc_state, gdb.Type):
-            self._gdbValue = pwndbg.gdblib.memory.get_typed_pointer_value(pwndbg.heap.current.malloc_state, addr)
+            self._gdbValue = pwndbg.gdblib.memory.get_typed_pointer_value(
+                pwndbg.heap.current.malloc_state, addr
+            )
         else:
             self._gdbValue = pwndbg.heap.current.malloc_state(addr)
 
@@ -1398,7 +1402,9 @@ class DebugSymsHeap(GlibcMemoryAllocator):
                 tcache = self.main_arena.heaps[0].start + pwndbg.gdblib.arch.ptrsize * 2
 
             try:
-                self._thread_cache = pwndbg.gdblib.memory.get_typed_pointer_value(self.tcache_perthread_struct, tcache)
+                self._thread_cache = pwndbg.gdblib.memory.get_typed_pointer_value(
+                    self.tcache_perthread_struct, tcache
+                )
                 self._thread_cache["entries"].fetch_lazy()
             except Exception:
                 print(
@@ -1477,7 +1483,9 @@ class DebugSymsHeap(GlibcMemoryAllocator):
         if tcache_addr is None:
             return self.thread_cache
 
-        return pwndbg.gdblib.memory.get_typed_pointer_value(self.tcache_perthread_struct, tcache_addr)
+        return pwndbg.gdblib.memory.get_typed_pointer_value(
+            self.tcache_perthread_struct, tcache_addr
+        )
 
     def get_sbrk_heap_region(self):
         """Return a Page object representing the sbrk heap region.

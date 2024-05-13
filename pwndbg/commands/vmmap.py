@@ -14,9 +14,14 @@ import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.gdblib.elf
 import pwndbg.gdblib.vmmap
+from pwndbg.color import bold_green
+from pwndbg.color import bold_red
+from pwndbg.color import gray
+from pwndbg.color import green
+from pwndbg.color import red
 from pwndbg.commands import CommandCategory
 from pwndbg.gdblib import gdb_version
-from pwndbg.color import bold_green, bold_blue, bold_red, green, gray, red
+
 integer_types = (int, gdb.Value)
 
 
@@ -84,6 +89,7 @@ parser.add_argument(
     help="Display full gap information in the memory map.",
 )
 
+
 def print_vmmap_gaps_table_header() -> None:
     """
     Prints the table header for the vmmap command.
@@ -93,6 +99,7 @@ def print_vmmap_gaps_table_header() -> None:
     print(
         f"{'Index':>4}{'Start':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} {'End':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} {'Perm':>5} {'Size':>8} {'Type':>9} {'Accumulated Size':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}}"
     )
+
 
 def print_map_gaps_only(maps):
     last_map = None
@@ -124,10 +131,12 @@ def calculate_total_memory(maps):
         total += m.size
     print(f"Total memory used: {total:#x} ({int(total/1024/1024)} MB)")
 
+
 def gap_text(page):
     # Strip out offset and objfile from stringified page
-    display_text = " ".join(str(page).split(' ')[:-2])
+    display_text = " ".join(str(page).split(" ")[:-2])
     return display_text
+
 
 def print_map(page, index=None):
     if page.is_guard:
@@ -139,6 +148,7 @@ def print_map(page, index=None):
             print(bold_green(f"{index:4d}: "), end="")
         print(bold_green(gap_text(page)))
 
+
 def vmmap_gaps(pages) -> None:
     """
     Prints the gaps in the memory map.
@@ -149,7 +159,7 @@ def vmmap_gaps(pages) -> None:
 
     index = -1
     last_map = None
-    last_start= None
+    last_start = None
     for page in pages:
         if index is not None:
             index = index + 1
@@ -170,9 +180,9 @@ def vmmap_gaps(pages) -> None:
                         f"{gap_text(last_map)} ADJACENT {(last_map.end - last_start.start):#x}"
                     )
                 )
-            #if index:
+            # if index:
             #    print(bold_red(f"{' ':>4}"), end="")
-            print(bold_red("-  " * int(57/3) + f" GAP {hex(page.start - last_map.end)}"))
+            print(bold_red("-  " * int(57 / 3) + f" GAP {hex(page.start - last_map.end)}"))
             print_map(page, index + 1)
             last_start = page
             last_map = page
@@ -200,6 +210,7 @@ def vmmap_gaps(pages) -> None:
             last_start = page
             print_map(page, index)
         last_map = page
+
 
 @pwndbg.commands.ArgparsedCommand(
     parser, aliases=["lm", "address", "vprot", "libs"], category=CommandCategory.MEMORY
@@ -253,7 +264,6 @@ def vmmap(
     if not total_pages:
         print("There are no mappings for specified address or module.")
         return
-
 
     if gaps:
         vmmap_gaps(total_pages)

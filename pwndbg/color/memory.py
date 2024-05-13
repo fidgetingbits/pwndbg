@@ -8,7 +8,8 @@ import pwndbg.gdblib.symbol
 import pwndbg.gdblib.vmmap
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
-from pwndbg.color import normal, gray
+from pwndbg.color import gray
+from pwndbg.color import normal
 
 ColorFunction = Callable[[str], str]
 

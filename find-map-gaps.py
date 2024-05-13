@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-import gdb
-import os
+from __future__ import annotations
+
 import re
-import pprint
 from dataclasses import dataclass
+
+import gdb
 
 # Coloring functions
 RED_BOLD = lambda x: "\033[1;31m" + str(x) + "\033[m"
@@ -51,9 +52,7 @@ def parse_vmmap():
             if mapping and mapping[0]:
                 start, end, size, offset, perms = mapping[0]
                 # Convert to integer type
-                start, end, size, offset = map(
-                    lambda x: int(x, 16), [start, end, size, offset]
-                )
+                start, end, size, offset = map(lambda x: int(x, 16), [start, end, size, offset])
                 perms = perms.strip()
                 # Entries with backing maps, like libraries, have the name of the mapping followed by perms
                 # eg: ('0x7ffff7f78000', '0x7ffff7fc4000', '0x4c000', '0x14000', 'r-xp   /lib/ld-musl-x86_64.so.1')
@@ -125,13 +124,9 @@ def print_map_gaps(maps):
             if last_start != last_map:
                 if index:
                     print(GREEN_BOLD(f"{index:4d}: "), end="")
-                print(
-                    GREEN_BOLD(
-                        f"{last_map} ^-- ADJ: {(last_map.end - last_start.start):#x}"
-                    )
-                )
+                print(GREEN_BOLD(f"{last_map} ^-- ADJ: {(last_map.end - last_start.start):#x}"))
             if index:
-                print(RED_BOLD(f"      "), end="")
+                print(RED_BOLD("      "), end="")
             print(RED_BOLD("[" + "0" * 46 + f" ]-- GAP: {hex(m.start - last_map.end)}"))
             print_map(m, index + 1)
             last_start = m
@@ -142,11 +137,7 @@ def print_map_gaps(maps):
             if last_start != last_map:
                 if index:
                     print(GREEN_BOLD(f"{index:4d}: "), end="")
-                print(
-                    GREEN_BOLD(
-                        f"{last_map} ^-- ADJ: {(last_map.end - last_start.start):#x}"
-                    )
-                )
+                print(GREEN_BOLD(f"{last_map} ^-- ADJ: {(last_map.end - last_start.start):#x}"))
             print_map(m, index + 1)
             last_start = None
             last_map = m

@@ -9,10 +9,10 @@ import sys
 
 import gdb
 
+import pwndbg.gdblib.memory
 import pwndbg.lib.cache
 import pwndbg.lib.gcc
 import pwndbg.lib.tempfile
-import pwndbg.gdblib.memory
 
 module = sys.modules[__name__]
 

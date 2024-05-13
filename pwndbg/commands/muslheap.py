@@ -4,20 +4,18 @@ import argparse
 
 import gdb
 
-import pwndbg.commands
 import pwndbg.color
-from pwndbg.color import (
-    message,
-    bold,
-    green,
-    purple,
-    white,
-    bold_red,
-    bold_green,
-    bold_blue,
-    bold_purple,
-    bold_white,
-)
+import pwndbg.commands
+from pwndbg.color import bold
+from pwndbg.color import bold_blue
+from pwndbg.color import bold_green
+from pwndbg.color import bold_purple
+from pwndbg.color import bold_red
+from pwndbg.color import bold_white
+from pwndbg.color import green
+from pwndbg.color import message
+from pwndbg.color import purple
+from pwndbg.color import white
 from pwndbg.commands import CommandCategory
 from pwndbg.constants import mallocng
 from pwndbg.heap.mallocng import MuslMallocngMemoryAllocator
