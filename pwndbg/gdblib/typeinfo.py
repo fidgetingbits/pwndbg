@@ -12,6 +12,7 @@ import gdb
 import pwndbg.lib.cache
 import pwndbg.lib.gcc
 import pwndbg.lib.tempfile
+import pwndbg.gdblib.memory
 
 module = sys.modules[__name__]
 
@@ -128,12 +129,6 @@ def load(name: str) -> Optional[gdb.Type]:
         return gdb.lookup_type(name)
     except gdb.error:
         return None
-
-
-def read_gdbvalue(type_name: str, addr) -> gdb.Value:
-    """Read the memory contents at addr and interpret them as a GDB value with the given type"""
-    gdb_type = pwndbg.gdblib.typeinfo.load(type_name)
-    return gdb.Value(addr).cast(gdb_type.pointer()).dereference()
 
 
 def get_type(size: int) -> gdb.Type:

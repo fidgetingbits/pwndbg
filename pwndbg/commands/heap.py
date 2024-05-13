@@ -11,7 +11,7 @@ import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.gdblib.config
-import pwndbg.gdblib.typeinfo
+import pwndbg.gdblib.memory
 import pwndbg.glibc
 import pwndbg.lib.heap.helpers
 from pwndbg.color import generateColorFunction
@@ -37,7 +37,7 @@ def read_chunk(addr):
         "mchunk_prev_size": "prev_size",
     }
     if isinstance(pwndbg.heap.current, DebugSymsHeap):
-        val = pwndbg.gdblib.typeinfo.read_gdbvalue("struct malloc_chunk", addr)
+        val = pwndbg.gdblib.memory.get_typed_pointer_value("struct malloc_chunk", addr)
     else:
         val = pwndbg.heap.current.malloc_chunk(addr)
     return {renames.get(key, key): int(val[key]) for key in val.type.keys()}
