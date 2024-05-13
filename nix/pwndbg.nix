@@ -1,30 +1,33 @@
 {
-  pkgs ? import <nixpkgs> {},
+  pkgs ? import <nixpkgs> { },
   python3 ? pkgs.python3,
   gdb ? pkgs.gdb,
   inputs ? null,
-}: let
-  binPath = pkgs.lib.makeBinPath ([
+}:
+let
+  binPath = pkgs.lib.makeBinPath (
+    [
       python3.pkgs.pwntools # ref: https://github.com/pwndbg/pwndbg/blob/2023.07.17/pwndbg/wrappers/checksec.py#L8
     ]
     ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
       python3.pkgs.ropper # ref: https://github.com/pwndbg/pwndbg/blob/2023.07.17/pwndbg/commands/ropper.py#L30
       python3.pkgs.ropgadget # ref: https://github.com/pwndbg/pwndbg/blob/2023.07.17/pwndbg/commands/rop.py#L34
-    ]);
+    ]
+  );
 
   pyEnv = import ./pyenv.nix {
     inherit pkgs python3 inputs;
     lib = pkgs.lib;
   };
 
-  pwndbgVersion = pkgs.lib.readFile (pkgs.runCommand "pwndbgVersion" {
-      nativeBuildInputs = [pkgs.python3];
-    } ''
+  pwndbgVersion = pkgs.lib.readFile (
+    pkgs.runCommand "pwndbgVersion" { nativeBuildInputs = [ pkgs.python3 ]; } ''
       mkdir pkg
       cd pkg
       cp ${inputs.pwndbg + "/pwndbg/lib/version.py"} version.py
       python3 -c 'import version; print(version.__version__, end="")' > $out
-    '');
+    ''
+  );
 
   pwndbg = pkgs.stdenv.mkDerivation {
     name = "pwndbg";
@@ -36,7 +39,7 @@
       "gdbinit.py"
     ];
 
-    nativeBuildInputs = [pkgs.makeWrapper];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
 
     installPhase = ''
       mkdir -p $out/share/pwndbg
@@ -62,4 +65,4 @@
     };
   };
 in
-  pwndbg
+pwndbg
