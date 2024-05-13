@@ -12,38 +12,9 @@
       python3.pkgs.ropgadget # ref: https://github.com/pwndbg/pwndbg/blob/2023.07.17/pwndbg/commands/rop.py#L34
     ]);
 
-  pyEnv = pkgs.poetry2nix.mkPoetryEnv {
-    groups = []; # put [ "dev" ] to build "dev" dependencies
-    checkGroups = []; # put [ "dev" ] to build "dev" dependencies
-    projectDir = inputs.pwndbg;
-    python = python3;
-    overrides = pkgs.poetry2nix.overrides.withDefaults (self: super: {
-      pip = python3.pkgs.pip; # fix infinite loop in nix, look here: https://github.com/nix-community/poetry2nix/issues/1184#issuecomment-1644878841
-      unicorn = python3.pkgs.unicorn; # fix build for aarch64 (but it will use same version like in nixpkgs)
-
-      # disable build from source, because rust's hash had to be repaired many times, see: PR https://github.com/pwndbg/pwndbg/pull/2024
-      cryptography = super.cryptography.override {
-        preferWheel = true;
-      };
-
-      unix-ar = super.unix-ar.overridePythonAttrs (old: {
-        nativeBuildInputs = (old.nativeBuildInputs or []) ++ [self.setuptools];
-      });
-
-      pt = super.pt.overridePythonAttrs (old: {
-        buildInputs = (old.buildInputs or []) ++ [super.poetry-core];
-      });
-      capstone = super.capstone.overridePythonAttrs (old: {
-        # fix darwin
-        preBuild = pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
-          sed -i 's/^IS_APPLE := .*$/IS_APPLE := 1/' ./src/Makefile
-        '';
-        # fix build for aarch64: https://github.com/capstone-engine/capstone/issues/2102
-        postPatch = pkgs.lib.optionalString pkgs.stdenv.isLinux ''
-          substituteInPlace setup.py --replace manylinux1 manylinux2014
-        '';
-      });
-    });
+  pyEnv = import ./pyenv.nix {
+    inherit pkgs python3 inputs;
+    lib = pkgs.lib;
   };
 
   pwndbgVersion = pkgs.lib.readFile (pkgs.runCommand "pwndbgVersion" {
