@@ -187,7 +187,7 @@ if __name__ == "__main__":
     if args.nix:
         gdbinit_path = os.path.join(ROOT_DIR, "result/share/pwndbg/gdbinit.py")
         if not os.path.exists(gdbinit_path):
-            print("ERROR: No nix-compatible gdbinit.py found. Run nix build")
+            print("ERROR: No nix-compatible gdbinit.py found. Run nix build .#pwndbg-dev")
             sys.exit(1)
         GDB_INIT_PATH = os.path.join(ROOT_DIR, "result/share/pwndbg/gdbinit.py")
         os.environ["GDB_INIT_PATH"] = GDB_INIT_PATH
