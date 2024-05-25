@@ -95,10 +95,14 @@ def print_vmmap_gaps_table_header() -> None:
     Prints the table header for the vmmap command.
     """
     # FIXME: Probably the Type can change...
-    # FIXME: Decide if index is useful (but I like being able to refer to multiple maps by index
-    print(
-        f"{'Index':>4}{'Start':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} {'End':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}} {'Perm':>5} {'Size':>8} {'Type':>9} {'Accumulated Size':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}}"
-    )
+    # FIXME: Decide if index is useful to others; I like being able to refer to multiple maps by index
+    header = [ f"{'Index':>4}{'Start':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}}" ]
+    header.append(f"{'End':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}}")
+    header.append(f"{'Perm':>5}")
+    header.append( f"{'Size':>8}")
+    header.append(f"{'Type':>9}")
+    header.append(f"{'Accumulated Size':>{2 + 2 * pwndbg.gdblib.arch.ptrsize}}")
+    print(" ".join(header))
 
 
 def print_map_gaps_only(maps):
@@ -119,7 +123,7 @@ def print_map_gaps_only(maps):
 
         if last_map.end != m.start:
             print(m, end="")
-            print(bold_red(f"GAP: {hex(m.start - last_map.end)}"))
+            print(bold_red(f"{'GAP':>9}: {hex(m.start - last_map.end)}"))
         else:
             print(m)
         last_map = m
@@ -142,7 +146,7 @@ def print_map(page, index=None):
     if page.is_guard:
         if index is not None:
             print(gray(f"{index:4d}: "), end="")
-        print(gray(f"{gap_text(page)} GUARD "))
+        print(gray(f"{gap_text(page)} {'GUARD':>9} "))
     else:
         if index is not None:
             print(bold_green(f"{index:4d}: "), end="")
@@ -151,19 +155,18 @@ def print_map(page, index=None):
 
 def vmmap_gaps(pages) -> None:
     """
-    Prints the gaps in the memory map.
+    Indicates the size of adjacent memory regions and gaps between them in process memory
     """
-    # FIXME: A lot from this legend wont' show, so make a new one probably?
     print(f"LEGEND: {green('MAPPED')} | {gray('GUARD')} | {red('GAP')}")
     print_vmmap_gaps_table_header()
 
     index = -1
-    last_map = None
-    last_start = None
+    last_map = None # The last mapped region we looked at
+    last_start = None # The last starting region of a series of mapped regions
+
     for page in pages:
-        if index is not None:
-            index = index + 1
-        # If this is the first map, just print it
+        index = index + 1
+        # If this is the map ever or after a GAP, just print it
         if not last_map:
             last_map = page
             last_start = page
@@ -173,16 +176,15 @@ def vmmap_gaps(pages) -> None:
         # If this a gap warn about it, but also print the last adjacent map set length
         if last_map.end != page.start:
             if last_start and last_start != last_map:
-                if index:
-                    print(bold_green(f"{index:4d}: "), end="")
+                print(bold_green(f"{index:4d}: "), end="")
                 print(
                     bold_green(
-                        f"{gap_text(last_map)} ADJACENT {(last_map.end - last_start.start):#x}"
+                        f"{gap_text(last_map)} f{'ADJACENT':>9} {(last_map.end - last_start.start):#x}"
                     )
                 )
-            # if index:
-            #    print(bold_red(f"{' ':>4}"), end="")
-            print(bold_red("-  " * int(57 / 3) + f" GAP {hex(page.start - last_map.end)}"))
+
+            print(bold_red(f"{index:4d}"), end="")
+            print(bold_red("/  " * int(57 / 3) + f" {'GAP':>9} {hex(page.start - last_map.end)}"))
             print_map(page, index + 1)
             last_start = page
             last_map = page
@@ -194,7 +196,7 @@ def vmmap_gaps(pages) -> None:
                     print(bold_green(f"{index:4d}: "), end="")
                 print(
                     bold_green(
-                        f"{gap_text(last_map)} ADJACENT {(last_map.end - last_start.start):#x}"
+                        f"{gap_text(last_map)} {'ADJACENT':>9} {(last_map.end - last_start.start):#x}"
                     )
                 )
             print_map(page, index + 1)
