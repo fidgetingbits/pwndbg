@@ -53,11 +53,13 @@ class Kallsyms:
         self.is_big_endian = None
 
         self.token_table = self.find_token_table()
-        self.is_uncompressed = self.token_table is None
+        self.is_uncompressed = False
 
-        if self.is_uncompressed:
+        if self.token_table is None:
+            if not self.find_names_uncompressed():
+                return
             print(M.info("Detected Uncompressed Kallsyms"))
-            self.find_names_uncompressed()
+            self.is_uncompressed = True
             self.markers = self.find_markers_uncompressed()
         else:
             print(M.info("Detected Compressed Kallsyms"))
