@@ -26,6 +26,22 @@ let
       ;
     isDev = true;
   };
+  jemalloc-static = pkgs.jemalloc.overrideAttrs (oldAttrs: {
+    version = "5.3.0"; # version match setup-dev.sh
+    configureFlags = (oldAttrs.configureFlags or [ ]) ++ [
+      "--enable-static"
+      "--disable-shared"
+    ];
+    # debug symbols currently required for jemalloc.py type resolution
+    preBuild = ''
+      makeFlagsArray+=(CFLAGS="-O0 -g")
+    '';
+    postInstall = ''
+      ${oldAttrs.postInstall or ""}
+      cp -v lib/libjemalloc.a $out/lib/
+    '';
+    dontStrip = true; # don't strip the debug symbols we added
+  });
 in
 {
   default = pkgs.mkShell {
@@ -50,22 +66,7 @@ in
           ;
       }
       ++ [
-        (pkgs.jemalloc.overrideAttrs (oldAttrs: {
-          version = "5.3.0"; # version match setup-dev.sh
-          configureFlags = (oldAttrs.configureFlags or [ ]) ++ [
-            "--enable-static"
-            "--disable-shared"
-          ];
-          # debug symbols currently required for jemalloc.py type resolution
-          preBuild = ''
-            makeFlagsArray+=(CFLAGS="-O0 -g")
-          '';
-          postInstall = ''
-            ${oldAttrs.postInstall or ""}
-            cp -v lib/libjemalloc.a $out/lib/
-          '';
-          dontStrip = true; # don't strip the debug symbols we added
-        }))
+        jemalloc-static
         # from qemu-tests.sh
         (pkgs.writeShellScriptBin "gdb-multiarch" ''
           exec ${lib.getBin pkgs.gdb}/bin/gdb "$@"
@@ -88,7 +89,7 @@ in
     shellHook = ''
       export PWNDBG_VENV_PATH="PWNDBG_PLEASE_SKIP_VENV"
       export ZIGPATH="${pkgs.lib.getBin pkgs.zig_0_10}/bin/"
-      export JEMALLOC_PATH="${pkgs.jemalloc}/lib/libjemalloc.a"
+      export JEMALLOC_PATH="${jemalloc-static}/lib/libjemalloc.a"
     '';
   };
 }
