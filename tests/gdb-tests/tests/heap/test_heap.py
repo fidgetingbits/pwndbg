@@ -547,12 +547,15 @@ def test_jemalloc_extent_info(start_binary):
     gdb.execute("break break_here")
     gdb.execute("continue")
 
-    EXPECTED_EXTENT_ADDRESS = 0x7FFFF7A16580
-
+    find_extent_results = gdb.execute("jemalloc_find_extent ptr", to_string=True).splitlines()
+    extent_address = None
+    for line in find_extent_results:
+        if "Extent Address:" in line:
+            extent_address = int(line.split(" ")[-1], 16)
+    if extent_address is None:
+        raise ValueError("Could not find extent address")
     # run jemalloc extent_info command
-    result = gdb.execute(
-        f"jemalloc_extent_info {EXPECTED_EXTENT_ADDRESS}", to_string=True
-    ).splitlines()
+    result = gdb.execute(f"jemalloc_extent_info {extent_address}", to_string=True).splitlines()
 
     expected_output = [
         "Jemalloc extent info",

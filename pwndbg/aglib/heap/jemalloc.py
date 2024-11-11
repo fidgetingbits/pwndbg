@@ -192,6 +192,10 @@ class RTree:
     def __init__(self, addr: int) -> None:
         self._addr = addr
 
+        rtree_s = pwndbg.aglib.typeinfo.load("struct rtree_s")
+        if rtree_s is None:
+            raise pwndbg.dbg_mod.Error("rtree_s type not found")
+
         # self._Value = pwndbg.aglib.memory.poi(emap_s, self._addr)
 
         # self._Value = pwndbg.aglib.memory.fetch_struct_as_dictionary(
@@ -203,13 +207,10 @@ class RTree:
         self._extents = None
 
     @staticmethod
-    def get_rtree() -> RTree | None:
-        try:
-            addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("je_arena_emap_global")
-            if addr is None:
-                return None
-        except pwndbg.dbg_mod.Error:
-            return None
+    def get_rtree() -> RTree:
+        addr = pwndbg.aglib.info.address("je_arena_emap_global")
+        if addr is None:
+            raise pwndbg.dbg_mod.Error("Required je_arena_emap_global symbol not found")
 
         return RTree(addr)
 
@@ -261,9 +262,14 @@ class RTree:
         - Jemalloc stores the extent address in the rtree as a node and to find a specific node we need a address key.
         """
         rtree_node_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_node_elm_s")
+        if rtree_node_elm_s is None:
+            raise pwndbg.dbg_mod.Error("rtree_node_elm_s type not found")
         rtree_leaf_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_leaf_elm_s")
+        if rtree_leaf_elm_s is None:
+            raise pwndbg.dbg_mod.Error("rtree_leaf_elm_s type not found")
 
         # Credits: 盏一's jegdb
+        # https://web.archive.org/web/20221114090949/https://github.com/hidva/hidva.github.io/blob/dev/_drafts/jegdb.py
 
         # For subkey 0
         subkey = self.__subkey(key, 1)
@@ -327,7 +333,11 @@ class RTree:
                 extent_addresses = []
 
                 rtree_node_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_node_elm_s")
+                if rtree_node_elm_s is None:
+                    raise pwndbg.dbg_mod.Error("rtree_node_elm_s type not found")
                 rtree_leaf_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_leaf_elm_s")
+                if rtree_leaf_elm_s is None:
+                    raise pwndbg.dbg_mod.Error("rtree_leaf_elm_s type not found")
 
                 max_subkeys = 1 << rtree_levels[RTREE_HEIGHT - 1][0]["bits"]
                 # print("max_subkeys: ", max_subkeys)

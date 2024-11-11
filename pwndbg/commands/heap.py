@@ -1590,7 +1590,9 @@ def jemalloc_find_extent(addr) -> None:
 
     rtree = jemalloc.RTree.get_rtree()
     extent = rtree.lookup_hard(addr)
-
+    if extent is None:
+        print(message.error("ERROR: Extent not found"))
+        return
     # print pointer address first, then extent address then extent information
     print(f"Pointer Address: {hex(addr)}")
     print(f"Extent Address: {hex(extent.extent_address)}")
@@ -1639,6 +1641,9 @@ def jemalloc_heap() -> None:
 
     rtree = jemalloc.RTree.get_rtree()
     extents = rtree.extents
+    if len(extents) == 0:
+        print(message.warn("No extents found"))
+        return
     for extent in extents:
         # TODO: refactor so not create copies
         jemalloc_extent_info(extent.extent_address, header=False)
