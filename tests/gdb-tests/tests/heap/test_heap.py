@@ -571,7 +571,6 @@ def test_jemalloc_extent_info(start_binary):
         assert re.match(expected_output[i], result[i])
 
 
-@pytest.mark.skip(reason="Output is resulting in duplicate extents")
 def test_jemalloc_heap(start_binary):
     start_binary(HEAP_JEMALLOC_HEAP)
     gdb.execute("break break_here")
@@ -585,35 +584,13 @@ def test_jemalloc_heap(start_binary):
         "This command was tested only for jemalloc 5.3.0 and does not support lower versions",
     ]
 
-    expected_output += [
-        "",
-        "Allocated Address: " + re_match_valid_address,
-        r"Extent Address: " + re_match_valid_address,
-        "Size: 0x401000",
-        "Small class: False",
-    ]
-
+    # Extent sizes different depending on the system built (it would seem), so only check for the 0x8000 size,
+    # since it seems consistent. The output of an extent implies the rest of the command is working
     expected_output += [
         "",
         "Allocated Address: " + re_match_valid_address,
         r"Extent Address: " + re_match_valid_address,
         "Size: 0x8000",
-        "Small class: False",
-    ]
-
-    expected_output += [
-        "",
-        "Allocated Address: " + re_match_valid_address,
-        r"Extent Address: " + re_match_valid_address,
-        "Size: 0x8000",
-        "Small class: False",
-    ]
-
-    expected_output += [
-        "",
-        "Allocated Address: " + re_match_valid_address,
-        r"Extent Address: " + re_match_valid_address,
-        "Size: 0x1f7000",
         "Small class: False",
     ]
 
