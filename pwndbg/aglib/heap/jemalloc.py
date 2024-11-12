@@ -208,10 +208,9 @@ class RTree:
 
     @staticmethod
     def get_rtree() -> RTree:
-        addr = pwndbg.aglib.info.address("je_arena_emap_global")
+        addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("je_arena_emap_global")
         if addr is None:
             raise pwndbg.dbg_mod.Error("Required je_arena_emap_global symbol not found")
-
         return RTree(addr)
 
     @property
