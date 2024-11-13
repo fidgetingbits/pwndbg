@@ -103,8 +103,8 @@ We use `qemu-system` for full system level emulation for our Linux kernel tests.
 
 ### Testing Under Nix
 
-You will need to build a nix-compatible gdbinit.py file, which you can do with `nix build .#pwndbg-dev`. Then simply run
-the test by adding the `--nix` flag:
+You will need to build a nix-compatible `gdbinit.py` file, which you can do with `nix build .#pwndbg-dev`. Then simply
+run the test by adding the `--nix` flag:
 
 ```bash
 ./tests.sh --nix [filter]
