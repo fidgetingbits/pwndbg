@@ -1588,17 +1588,20 @@ def jemalloc_find_extent(addr) -> None:
 
     addr = int(addr)
 
-    rtree = jemalloc.RTree.get_rtree()
-    extent = rtree.lookup_hard(addr)
-    if extent is None:
-        print(message.error("ERROR: Extent not found"))
-        return
-    # print pointer address first, then extent address then extent information
-    print(f"Pointer Address: {hex(addr)}")
-    print(f"Extent Address: {hex(extent.extent_address)}")
-    print()
+    try:
+        rtree = jemalloc.RTree.get_rtree()
+        extent = rtree.lookup_hard(addr)
+        if extent is None:
+            print(message.error("ERROR: Extent not found"))
+            return
+        # print pointer address first, then extent address then extent information
+        print(f"Pointer Address: {hex(addr)}")
+        print(f"Extent Address: {hex(extent.extent_address)}")
+        print()
 
-    jemalloc_extent_info(extent.extent_address, header=False)
+        jemalloc_extent_info(extent.extent_address, header=False)
+    except Exception as e:
+        print(message.error(f"ERROR: jemalloc_find_extent command failed {e}"))
 
 
 parser = argparse.ArgumentParser(description="Prints extent information for the given address")
@@ -1615,7 +1618,11 @@ def jemalloc_extent_info(addr, verbose=False, header=True) -> None:
         print("This command was tested only for jemalloc 5.3.0 and does not support lower versions")
         print()
 
-    extent = jemalloc.Extent(int(addr))
+    try:
+        extent = jemalloc.Extent(int(addr))
+    except Exception as e:
+        print(message.error(f"ERROR: jemalloc_extent_info command failed {e}"))
+        return
 
     print(f"Allocated Address: {hex(extent.allocated_address)}")
     print(f"Extent Address: {hex(extent.extent_address)}")
@@ -1639,12 +1646,15 @@ def jemalloc_heap() -> None:
     print("This command was tested only for jemalloc 5.3.0 and does not support lower versions")
     print()
 
-    rtree = jemalloc.RTree.get_rtree()
-    extents = rtree.extents
-    if len(extents) == 0:
-        print(message.warn("No extents found"))
-        return
-    for extent in extents:
-        # TODO: refactor so not create copies
-        jemalloc_extent_info(extent.extent_address, header=False)
-        print()
+    try:
+        rtree = jemalloc.RTree.get_rtree()
+        extents = rtree.extents
+        if len(extents) == 0:
+            print(message.warn("No extents found"))
+            return
+        for extent in extents:
+            # TODO: refactor so not create copies
+            jemalloc_extent_info(extent.extent_address, header=False)
+            print()
+    except Exception as e:
+        print(message.error(f"ERROR: jemalloc_heap command failed {e}"))
