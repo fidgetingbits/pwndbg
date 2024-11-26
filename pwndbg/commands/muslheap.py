@@ -176,7 +176,7 @@ def mfindslot(addr: int | None = None) -> None:
     print(
         text.bold_green("Found:"),
         "slot index is %s, owned by meta object at %s."
-        % (text.bold_blue(str(index)), text.magenta(hex(meta))),
+        % (text.bold_blue(str(index)), text.magenta(hex(int(meta)))),
     )
 
     # Display slot and (out-of-band) meta information about the slot

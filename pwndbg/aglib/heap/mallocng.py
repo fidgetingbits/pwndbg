@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import re
-from pathlib import Path
+from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -22,8 +22,8 @@ class Printer:
         self,
         header_rjust: int | None = None,
         header_ljust: int | None = None,
-        header_clr: int | None = None,
-        content_clr: int | None = None,
+        header_clr: Callable[[str], str] | None = None,
+        content_clr: Callable[[str], str] | None = None,
     ) -> None:
         self.HEADER_RJUST = header_rjust
         self.HEADER_LJUST = header_ljust
@@ -34,8 +34,8 @@ class Printer:
         self,
         header_rjust: int | None = None,
         header_ljust: int | None = None,
-        header_clr: int | None = None,
-        content_clr: int | None = None,
+        header_clr: Callable[[str], str] | None = None,
+        content_clr: Callable[[str], str] | None = None,
     ) -> None:
         """Set Printer config for coloring and aligning"""
 
@@ -107,7 +107,7 @@ def generate_mask_str(avail_mask: int, freed_mask: int) -> Tuple[str, str]:
     return (avail_str, freed_str)
 
 
-def generate_slot_map(meta: Dict, mask_index: int | None = None) -> str:
+def generate_slot_map(meta: pwndbg.dbg_mod.Value, mask_index: int | None = None) -> str:
     """Generate a map-like string to display the status of all slots in a group.
 
     If mask_index is set, mask the specified slot in status map.
@@ -179,7 +179,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
     ]
     # fmt: on
 
-    def __init__(self) -> None:
+    def __init__(self):
         # http://git.musl-libc.org/cgit/musl/tree/src/malloc/mallocng/malloc.c?h=v1.2.2#n40
         # `ctx` (or `__malloc_context`) contains mallocng internal status (such as `active` and `free_meta_head`)
         self.ctx = None
@@ -205,30 +205,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
             self.ctx = pwndbg.aglib.memory.get_typed_pointer_value("struct malloc_context", sv)
         return True
 
-    def get_libcbase(self) -> int | None:
-        """Find and get musl libc.so base address from current memory mappings"""
-
-        # FIXME: check for any other alternative names for the musl-libc library?
-        soname_pattern = [
-            r"^ld-musl-.+\.so\.1$",
-            r"^libc\.so$",
-            r"^libc\.musl-.+\.so\.1$",
-        ]
-
-        for mapping in pwndbg.aglib.vmmap.get():
-            objfile = mapping.objfile
-            if not objfile or objfile.startswith("["):
-                continue
-            objfn = Path(objfile).name
-            for pattern in soname_pattern:
-                if re.match(pattern, objfn):
-                    return mapping.vaddr
-
-        print(message.warn("Warning: can't find musl-libc in memory mappings!\n"))
-
-        return None
-
-    def get_stride(self, g: Dict) -> int | None:
+    def get_stride(self, g: pwndbg.dbg_mod.Value) -> int | None:
         # http://git.musl-libc.org/cgit/musl/tree/src/malloc/mallocng/meta.h?h=v1.2.2#n175
 
         last_idx = int(g["last_idx"])
@@ -248,7 +225,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         return (sc - 7 < 32) and int(self.ctx["bounces"][sc - 7]) >= 100
 
-    def okay_to_free(self, g: Dict) -> bool:
+    def okay_to_free(self, g: pwndbg.dbg_mod.Value) -> bool:
         # http://git.musl-libc.org/cgit/musl/tree/src/malloc/mallocng/free.c?h=v1.2.2#n38
 
         if not g["freeable"]:
@@ -271,12 +248,10 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         return False
 
-    def search_chain(self, p: pwndbg.dbg_mod.Value) -> List:
+    def search_chain(self, p: int) -> List[Tuple[pwndbg.dbg_mod.Value, int]]:
         """Find slots where `p` is inside by traversing `ctx.meta_area_head` chain"""
 
-        p = int(p)
-
-        result = []
+        result: List[Tuple[pwndbg.dbg_mod.Value, int]] = []
         try:
             # Traverse every meta object in `meta_area_head` chain
             meta_area = self.ctx["meta_area_head"]
@@ -318,7 +293,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
         return result
 
     # Called by mfindslot
-    def display_ob_slot(self, p: pwndbg.dbg_mod.Value, meta: Dict, index: int) -> None:
+    def display_ob_slot(self, p: int, meta: pwndbg.dbg_mod.Value, index: int) -> None:
         """Display slot out-of-band information
 
         This allows you to find information about uninitialized slots.
@@ -332,7 +307,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
         slot_start = int(meta["mem"]["storage"][stride * index].address)
 
         # Display the offset from slot to `p`
-        offset = int(p) - slot_start
+        offset = p - slot_start
         if offset == 0:
             offset_tips = text.bold_white("0")
         elif offset > 0:
@@ -342,9 +317,9 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
         offset_tips = " (offset: %s)" % offset_tips
 
         P("address", text.bold_blue(hex(slot_start)) + offset_tips)
-        P("index", index)
+        P("index", str(index))
         P("stride", hex(stride))
-        P("meta obj", text.magenta(hex(meta)))
+        P("meta obj", text.magenta(hex(int(meta))))
 
         # Check slot status
         #
@@ -382,7 +357,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
         else:
             P("status", text.bold_white("?"))
 
-    def parse_ib_meta(self, p: int) -> Dict:
+    def parse_ib_meta(self, p: int) -> Dict[str, Any]:
         """Parse 4-byte in-band meta and offset32"""
         ib = {
             "offset16": pwndbg.aglib.memory.get_typed_pointer_value("uint16_t", p - 2),
@@ -396,7 +371,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
         }
         return ib
 
-    def display_ib_meta(self, p: int, ib: Dict) -> None:
+    def display_ib_meta(self, p: int, ib: Dict[str, Any]) -> None:
         """Display in-band meta"""
 
         print(text.bold_white("============== IN-BAND META =============="))
@@ -406,14 +381,14 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
         # IB: Check index
         index = ib["index"]
         if index < 0x1F:
-            P("INDEX", index)
+            P("INDEX", str(index))
         else:
             P("INDEX", hex(index), "EXPECT: index < 0x1f")
 
         # IB: Check reserved_in_band
         reserved_in_band = ib["reserved_in_band"]
         if reserved_in_band < 5:
-            P("RESERVED", reserved_in_band)
+            P("RESERVED", str(reserved_in_band))
         elif reserved_in_band == 5:
             P("RESERVED", "5" + text.bold_magenta(" (Use reserved in slot end)"))
         elif reserved_in_band == 6:
@@ -437,7 +412,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
         overflow_in_band = int(ib["overflow_in_band"])
         if not overflow_in_band:
             group_ptr = p - (offset16 + 1) * mallocng.UNIT
-            P("OVERFLOW", 0)
+            P("OVERFLOW", str(0))
             P("OFFSET_16", "%s (group --> %s)" % (hex(offset16), hex(group_ptr)))
         else:
             # `offset32` can be used as the offset to group object
@@ -462,7 +437,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
                     "EXPECT: *(uint16_t*)(%s) == 0]" % hex(p - 2),
                 )
 
-    def display_group(self, group: Dict) -> None:
+    def display_group(self, group: pwndbg.dbg_mod.Value) -> None:
         """Display group information"""
 
         print(
@@ -473,12 +448,17 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
         P = printer.print
 
         meta = group["meta"]
-        P("meta", hex(meta))
-        P("active_idx", int(group["active_idx"]))
+        P("meta", hex(int(meta)))
+        P("active_idx", str(int(group["active_idx"])))
         if meta == 0:
             print(message.warn("WARNING: group.meta is NULL. Likely unintialized IB data."))
 
-    def display_meta(self, meta: Dict, ib: Dict | None = None, index: int | None = None):
+    def display_meta(
+        self,
+        meta: pwndbg.dbg_mod.Value,
+        ib: Dict[str, Any] | None = None,
+        index: int | None = None,
+    ):
         """Display meta information
 
         This gets called in two contexts, one where ib is known and one where index
@@ -501,18 +481,19 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
                 offset = int(ib["offset32"])
 
         print(
-            text.bold_white("\n================== META ================== ") + "(at %s)" % hex(meta)
+            text.bold_white("\n================== META ================== ")
+            + f"(at {hex(int(meta))})"
         )
         printer = Printer(header_clr=text.bold_magenta, content_clr=text.bold_blue, header_rjust=13)
         P = printer.print
 
         # META: Check prev, next (no validation)
-        P("prev", hex(meta["prev"]))
-        P("next", hex(meta["next"]))
+        P("prev", hex(int(meta["prev"])))
+        P("next", hex(int(meta["next"])))
 
         # META: Check mem
-        mem = meta["mem"]
-        if int(group.address) == int(mem):
+        mem = int(meta["mem"])
+        if int(group.address) == mem:
             P("mem", hex(mem))
         else:
             P("mem", hex(mem), "EXPECT: 0x%lx" % int(group.address))
@@ -520,9 +501,9 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
         # META: Check last_idx
         last_idx = int(meta["last_idx"])
         if index <= last_idx:
-            P("last_idx", last_idx)
+            P("last_idx", str(last_idx))
         else:
-            P("last_idx", last_idx, "EXPECT: index <= last_idx")
+            P("last_idx", str(last_idx), "EXPECT: index <= last_idx")
 
         avail_mask = int(meta["avail_mask"])
         freed_mask = int(meta["freed_mask"])
@@ -549,11 +530,11 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         secret = int(self.ctx["secret"])
         if int(area["check"]) == secret:
-            P("area->check", hex(area["check"]))
+            P("area->check", hex(int(area["check"])))
         else:
             P(
                 "area->check",
-                hex(area["check"]),
+                hex(int(area["check"])),
                 "EXPECT: *(0x%lx) == 0x%lx" % (int(meta) & -4096, secret),
             )
 
@@ -596,7 +577,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
             if not bad:
                 P("sizeclass", "%d %s" % (sc, stride_tips))
         else:
-            P("sizeclass", sc, "EXPECT: sizeclass < 48 || sizeclass == 63")
+            P("sizeclass", str(sc), "EXPECT: sizeclass < 48 || sizeclass == 63")
 
         # META: Check maplen
         maplen = int(meta["maplen"])
@@ -610,10 +591,10 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
                     "EXPECT: offset <= maplen * %d - 1" % (4096 // mallocng.UNIT),
                 )
         else:
-            P("maplen", 0)
+            P("maplen", str(0))
 
         # META: Check freeable
-        P("freeable", int(meta["freeable"]))
+        P("freeable", str(int(meta["freeable"])))
 
         # META: Check group allocation method
         if not meta["freeable"]:
@@ -646,7 +627,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
         # Display slot status map
         print(generate_slot_map(meta, index))
 
-    def display_nontrivial_free(self, ib: Dict, group: Dict) -> None:
+    def display_nontrivial_free(self, ib: Dict[str, Any], group: pwndbg.dbg_mod.Value) -> None:
         """Display the result of nontrivial_free()"""
 
         printer = Printer(header_clr=text.bold_magenta, content_clr=text.bold_green)
@@ -690,12 +671,16 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
         # dequeue
         if print_dq:
             print(text.bold_green("  dequeue:"))
-            prev_next = text.magenta("*" + hex(meta["prev"]["next"].address))
+            prev_next = text.magenta("*" + hex(int(meta["prev"]["next"].address)))
             prev_next = text.bold_blue("prev->next(") + prev_next + text.blue(")")
-            next_prev = text.magenta("*" + hex(meta["next"]["prev"].address))
+            next_prev = text.magenta("*" + hex(int(meta["next"]["prev"].address)))
             next_prev = text.bold_blue("next->prev(") + next_prev + text.bold_blue(")")
-            next = text.bold_blue("next(") + text.magenta(hex(meta["next"])) + text.bold_blue(")")
-            prev = text.bold_blue("prev(") + text.magenta(hex(meta["prev"])) + text.bold_blue(")")
+            next = (
+                text.bold_blue("next(") + text.magenta(hex(int(meta["next"]))) + text.bold_blue(")")
+            )
+            prev = (
+                text.bold_blue("prev(") + text.magenta(hex(int(meta["prev"]))) + text.bold_blue(")")
+            )
             print("  \t%s = %s" % (prev_next, next))  # prev->next(XXX) = next(XXX)
             print("  \t%s = %s" % (next_prev, prev))  # next->prev(XXX) = prev(XXX)
         # free_group
@@ -721,13 +706,18 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
                 " \t%s%s%s"
                 % (
                     text.bold_blue("meta object at "),
-                    text.magenta(hex(meta)),
+                    text.magenta(hex(int(meta))),
                     text.bold_blue(" will be freed and inserted into free_meta chain"),
                 )
             )
 
     # Called by mslotinfo.
-    def display_ib_slot(self, p: pwndbg.dbg_mod.Value, meta: Dict, ib: Dict) -> None:
+    def display_ib_slot(
+        self,
+        p: pwndbg.dbg_mod.Value,
+        meta: pwndbg.dbg_mod.Value,
+        ib: Dict[str, Any],
+    ) -> None:
         """Display slot in-band information
 
         This expects the slot to be in-use and tries to parse it's in-band data.
@@ -742,7 +732,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         print(
             text.bold_white("\n============= SLOT IN-BAND =============== ")
-            + "(at %s)" % hex(slot_start)
+            + f"(at {hex(int(slot_start))})"
         )
 
         printer = Printer(header_clr=text.bold_blue, content_clr=text.bold_white, header_rjust=20)
@@ -762,10 +752,10 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
             # Else, slot header is now occupied by in-band meta.
             # In this case, `userdata` will be located at the beginning of slot.
             cycling_offset = 0
-        userdata_ptr = slot_start + cycling_offset * mallocng.UNIT
+        userdata_ptr = int(slot_start + int(cycling_offset) * mallocng.UNIT)
         P(
             "cycling offset",
-            "%s (userdata --> %s)" % (hex(cycling_offset), hex(userdata_ptr)),
+            "%s (userdata --> %s)" % (hex(int(cycling_offset)), hex(userdata_ptr)),
         )
 
         # SLOT: Check reserved
@@ -804,7 +794,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
                 pwndbg.aglib.memory.get_typed_pointer_value("uint8_t", slot_end - reserved)
             )
             if not ud_overflow:
-                P("OVERFLOW (user data)", 0)
+                P("OVERFLOW (user data)", str(0))
             else:
                 P(
                     "OVERFLOW (user data)",
@@ -814,11 +804,11 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
             if reserved >= 5:
                 rs_overflow = pwndbg.aglib.memory.get_typed_pointer_value("uint8_t", slot_end - 5)
                 if not rs_overflow:
-                    P("OVERFLOW  (reserved)", 0)
+                    P("OVERFLOW  (reserved)", str(0))
                 else:
                     P(
                         "OVERFLOW  (reserved)",
-                        hex(rs_overflow),
+                        hex(int(rs_overflow)),
                         "EXPECT: *(uint8_t*)(%s) == 0" % hex(slot_end - 5),
                     )
         else:
@@ -826,7 +816,7 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
             P("OVERFLOW  (reserved)", "N/A (reserved size is invaild)")
         ns_overflow = int(pwndbg.aglib.memory.get_typed_pointer_value("uint8_t", slot_end))
         if not ns_overflow:
-            P("OVERFLOW (next slot)", 0)
+            P("OVERFLOW (next slot)", str(0))
         else:
             P(
                 "OVERFLOW (next slot)",

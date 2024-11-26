@@ -40,19 +40,3 @@ def find(address: int | pwndbg.dbg_mod.Value | None) -> pwndbg.lib.memory.Page |
     if pwndbg.dbg.is_gdblib_available():
         return pwndbg.gdblib.vmmap.explore(address)
     return None
-
-
-@pwndbg.lib.cache.cache_until("start", "stop")
-def find_base_address(pattern: str | list[str]) -> int | None:
-    if pwndbg.dbg.is_gdblib_available():
-        return pwndbg.gdblib.vmmap.find_base_address(pattern)
-
-    if isinstance(pattern, str):
-        pattern = [pattern]
-
-    for page in get():
-        for p in pattern:
-            if p in page.objfile:
-                return page.vaddr
-
-    return None
