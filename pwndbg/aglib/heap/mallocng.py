@@ -5,15 +5,14 @@ from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Tuple
-from typing import Any
+
 from pwnlib.term import text
 
 import pwndbg
-
-from pwndbg.lib.common import hex
-from pwndbg.lib.common import bin
 from pwndbg.color import message
 from pwndbg.constants import mallocng
+from pwndbg.lib.common import bin
+from pwndbg.lib.common import hex
 
 
 class Printer:

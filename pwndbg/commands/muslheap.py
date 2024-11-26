@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import argparse
+
 from pwnlib.term import text
 
 import pwndbg.color
 import pwndbg.commands
+from pwndbg.aglib.heap.mallocng import MuslMallocngMemoryAllocator
+from pwndbg.aglib.heap.mallocng import Printer
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.constants import mallocng
-from pwndbg.aglib.heap.mallocng import MuslMallocngMemoryAllocator
-from pwndbg.aglib.heap.mallocng import Printer
 from pwndbg.lib.common import hex
 
 mheap = MuslMallocngMemoryAllocator()

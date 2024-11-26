@@ -1,6 +1,8 @@
 from __future__ import annotations
-import pwndbg
+
 import builtins
+
+import pwndbg
 
 
 def hex(x: int):
