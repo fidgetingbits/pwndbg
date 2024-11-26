@@ -914,6 +914,10 @@ class GDBType(pwndbg.dbg_mod.Type):
 
         return self.inner == other.inner
 
+    @override
+    def __str__(self) -> str:
+        return str(self.inner)
+
     @property
     @override
     def name(self) -> str:

@@ -1,4 +1,22 @@
 from __future__ import annotations
+import pwndbg
+import builtins
+
+
+def hex(x: int):
+    """Converts an integer to a hex string."""
+    try:
+        return builtins.hex(x)
+    except Exception:
+        return builtins.hex(int(x) & pwndbg.aglib.arch.ptrmask)
+
+
+def bin(x: int):
+    """Converts an integer to a binary string."""
+    try:
+        return builtins.bin(x)
+    except Exception:
+        return builtins.bin(int(x) & pwndbg.aglib.arch.ptrmask)
 
 
 # common functions

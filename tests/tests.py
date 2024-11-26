@@ -116,7 +116,9 @@ def get_tests_list(
     tests_collect_output = result.stdout
 
     if result.returncode == 1:
+        print("Failed to collect tests")
         print(tests_collect_output)
+        print(result.stderr)
         exit(1)
     elif collect_only == 1:
         print(tests_collect_output)
