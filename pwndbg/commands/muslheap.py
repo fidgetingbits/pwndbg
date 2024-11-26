@@ -245,9 +245,10 @@ def mslotinfo(addr: int | None = None) -> None:
     else:
         offset = int(ib["offset32"])
     addr = p - (offset + 1) * mallocng.UNIT
-    group_type = mheap.get_group_type()
-    if not group_type:
-        print(message.error("Failed to get mallocng group type"))
+    try:
+        group_type = pwndbg.aglib.memory.find_struct_member_type("struct meta", "struct group *")
+    except ValueError as e:
+        print(message.error(f"Failed to get mallocng group type: {e}"))
         return
     group = pwndbg.aglib.memory.get_typed_pointer_value(group_type, addr)
     if not group:

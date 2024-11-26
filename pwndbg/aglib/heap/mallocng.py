@@ -228,31 +228,6 @@ class MuslMallocngMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         return None
 
-    def get_group_type(self) -> pwndbg.dbg_mod.Value | None:
-        """Find the struct group indirectly using the meta group
-
-        There is another common `struct group` in grp.h that complicates pulling out the musl mallocng `struct group`,
-        because gdb will favour the first one it finds. And I'm also not sure that we want to rely on a specific context
-        block to pass to lookup_type. So since we know meta use is what we want, we just pull it from there.
-
-        FIXME: This should probably be abstracted to be a helper in pwndbg.aglib.typeinfo
-        """
-
-        meta_type = pwndbg.aglib.typeinfo.lookup_types("struct meta")
-        if meta_type is None:
-            print(message.error("Type 'struct meta' not found."))
-            return None
-        # Purposely fuzzy find the member in case meta ever changes
-        group_type = None
-        for field in meta_type.fields():
-            if str(field.type).startswith("struct group *"):
-                group_type = field.type.target()
-                break
-        if group_type is None:
-            print(message.error("Type 'struct group' not found in the 'meta' structure."))
-            return None
-        return group_type
-
     def get_stride(self, g: Dict) -> int | None:
         # http://git.musl-libc.org/cgit/musl/tree/src/malloc/mallocng/meta.h?h=v1.2.2#n175
 

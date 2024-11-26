@@ -405,3 +405,28 @@ def resolve_renamed_struct_field(struct_name: str, possible_field_names: Set[str
             return field_name
 
     raise ValueError(f"Field name did not match any of {possible_field_names}.")
+
+
+def find_struct_member_type(struct_type: str, member_type: str) -> pwndbg.dbg_mod.Type:
+    """Find and return the type object of a member type inside a given struct type
+
+    This is useful when there is a naming conflict between two symbols (ie: struct group) and
+    we can't directly resolve it. This is a problem at least in gdb where the first symbol match
+    is selected, rather than giving an option to select alternates.
+
+    If a struct is known to contain a required type, this functio can retrieve it.
+
+    ex: find_struct_member_type("struct meta", "struct group *") will return the type of the member
+    """
+
+    struct = pwndbg.aglib.typeinfo.lookup_types(struct_type)
+    if struct is None:
+        raise ValueError(f"Type '{struct_type}' not found.")
+    field_type = None
+    for field in struct.fields():
+        if str(field.type).startswith("struct group *"):
+            field_type = field.type.target()
+            break
+    if field_type is None:
+        raise ValueError(f"Type '{struct_type}' does not contain a member of type {member_type}.")
+    return field_type
