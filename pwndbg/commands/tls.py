@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 
+from pwnlib.term.text import bold_green
 from tabulate import tabulate
 
 import pwndbg.aglib.memory
@@ -85,7 +86,6 @@ group.add_argument(
 def threads(num_threads, respect_config) -> None:
     table = []
     headers = ["global_num", "name", "status", "pc", "symbol"]
-    bold_green = lambda text: pwndbg.color.bold(pwndbg.color.green(text))
 
     import gdb
 
@@ -122,7 +122,7 @@ def threads(num_threads, respect_config) -> None:
 
         if thread is original_thread:
             row = [
-                bold_green(thread.global_num),
+                bold_green(str(thread.global_num)),
                 bold_green(name),
             ]
         else:
@@ -144,7 +144,7 @@ def threads(num_threads, respect_config) -> None:
 
             if symbol:
                 if thread is original_thread:
-                    row.append(bold_green(symbol))
+                    row.append(bold_green(str(symbol)))
                 else:
                     row.append(symbol)
 

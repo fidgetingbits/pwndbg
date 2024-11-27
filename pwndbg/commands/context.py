@@ -15,6 +15,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from pwnlib.term import text
 from typing_extensions import ParamSpec
 
 import pwndbg
@@ -1178,7 +1179,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
 
             line += f"{pc_colored}"
             if symbol:
-                line += f" <{pwndbg.color.bold(pwndbg.color.green(symbol))}> "
+                line += f" <{text.bold_green(str(symbol))}> "
 
         out.append(line)
 

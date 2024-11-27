@@ -4,6 +4,8 @@ import argparse
 import errno
 from collections import defaultdict
 
+from pwnlib.term import text
+
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
@@ -101,7 +103,7 @@ parser.add_argument(
 def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
     if list_categories:
         for category in CommandCategory:
-            print(C.bold(C.green(f"{category.value}")))
+            print(text.bold_green(category.value))
         return
 
     if all_:
@@ -133,11 +135,11 @@ def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
             continue
         data = table_data[category]
 
-        category_header = C.bold(C.green(category + " Commands"))
-        alias_header = C.bold(C.blue("Aliases"))
+        category_header = text.bold_green(category + " Commands")
+        alias_header = text.bold_blue("Aliases")
         print(
             tabulate(
-                data, headers=[f"{category_header} [{alias_header}]", f"{C.bold('Description')}"]
+                data, headers=[f"{category_header} [{alias_header}]", f"{text.bold('Description')}"]
             )
         )
         print()
